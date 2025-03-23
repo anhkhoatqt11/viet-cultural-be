@@ -132,8 +132,8 @@ model support_tickets {
 model users {
   id                Int                 @id(map: "Users_pkey") @default(autoincrement())
   full_name         String              @db.VarChar(100)
-  username          String              @db.VarChar(50)
-  email             String              @db.VarChar(100)
+  username          String              @unique @db.VarChar(50)
+  email             String              @unique @db.VarChar(100)
   password          String
   avatart_url       String?
   date_of_birth     DateTime            @db.Date
@@ -146,4 +146,16 @@ model users {
   journey_notebooks journey_notebooks[]
   journeys          journeys[]
   support_tickets   support_tickets[]
+  refreshTokens     RefreshToken[]
+}
+
+model RefreshToken {
+  id          String   @id @unique @default(uuid())
+  hashedToken String   @unique
+  userId      Int
+  User        users    @relation(fields: [userId], references: [id], onDelete: Cascade)
+  revoked     Boolean  @default(false)
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+  expireAt    DateTime
 }

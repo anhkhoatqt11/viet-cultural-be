@@ -17,7 +17,7 @@ const {
 
 router.post('/register', async (req, res, next) => {
   try {
-    const { email, password } = req.body;
+    const { email, password, full_name, username, date_of_birth, location, gender } = req.body;
     if (!email || !password) {
       res.status(400);
       throw new Error('You must provide an email and a password.');
@@ -30,7 +30,10 @@ router.post('/register', async (req, res, next) => {
       throw new Error('Email already in use.');
     }
 
-    const user = await createUserByEmailAndPassword({ email, password });
+    const user = await createUserByEmailAndPassword({
+      email, password, full_name, username, date_of_birth,
+      location, gender
+    });
     const { accessToken, refreshToken } = generateTokens(user);
     await addRefreshTokenToWhitelist({ refreshToken, userId: user.id });
 
