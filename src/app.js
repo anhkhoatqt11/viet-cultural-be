@@ -17,7 +17,6 @@ app.use(helmet());
 app.use(cors());
 app.use(express.json());
 
-// Swagger configuration
 const swaggerOptions = {
   definition: {
     openapi: '3.0.0',
@@ -28,8 +27,8 @@ const swaggerOptions = {
     },
     servers: [
       {
-        url: 'http://localhost:5000/api/v1',
-        description: 'Local server',
+        url: process.env.SERVER_URL || 'http://localhost:5000/api/v1',
+        description: 'Deployed server',
       },
     ],
     components: {
@@ -48,11 +47,16 @@ const swaggerOptions = {
       },
     ],
   },
-  apis: ['./src/api/**/*.js'], // Point to route files for Swagger documentation
+  apis: ['./src/api/**/*.js'],
 };
+
 
 const swaggerDocs = swaggerJsDoc(swaggerOptions);
 app.use('/api-docs', swaggerUi.serve, swaggerUi.setup(swaggerDocs));
+app.use("/api-docs/swagger-ui-bundle.js", express.static(require.resolve("swagger-ui-dist/swagger-ui-bundle.js")));
+app.use("/api-docs/swagger-ui-standalone-preset.js", express.static(require.resolve("swagger-ui-dist/swagger-ui-standalone-preset.js")));
+app.use("/api-docs/swagger-ui.css", express.static(require.resolve("swagger-ui-dist/swagger-ui.css")));
+
 
 app.get('/', (req, res) => {
   res.json({
