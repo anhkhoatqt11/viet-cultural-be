@@ -68,7 +68,7 @@ const {
  */
 router.post('/register', async (req, res, next) => {
   try {
-    const { email, password, full_name, username, date_of_birth, location, gender } = req.body;
+    const { email, password, full_name} = req.body;
     if (!email || !password) {
       res.status(400);
       throw new Error('You must provide an email and a password.');
@@ -81,7 +81,7 @@ router.post('/register', async (req, res, next) => {
     }
 
     const user = await createUserByEmailAndPassword({
-      email, password, full_name, username, date_of_birth, location, gender
+      email, password, full_name
     });
 
     const { accessToken, refreshToken } = generateTokens(user);
