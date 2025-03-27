@@ -17,6 +17,9 @@ const {
   findUserById,
 } = require('../user/user.services');
 const { db } = require('../../utils/db');
+const { isAuthenticated } = require('../../middlewares');
+const jwt = require('jsonwebtoken');
+
 
 
 /**
@@ -141,41 +144,45 @@ router.post('/login', async (req, res, next) => {
   }
 });
 
-
 /**
  * @swagger
  * /auth/logout:
  *   post:
  *     summary: Logout user by revoking their tokens
  *     tags: [Auth]
- *     requestBody:
- *       required: true
- *       content:
- *         application/json:
- *           schema:
- *             type: object
- *             required:
- *               - refreshToken
- *             properties:
- *               refreshToken:
- *                 type: string
- *                 example: "some-valid-refresh-token"
  *     responses:
  *       200:
  *         description: Successfully logged out
  *       400:
- *         description: Refresh token is required
- *       403:
- *         description: Invalid refresh token
+ *         description: User is not authenticated or no refresh token found
  */
+
 router.post('/logout', async (req, res, next) => {
   try {
-    const { refreshToken } = req.body;
-    if (!refreshToken) {
-      res.status(400);
-      throw new Error('Refresh token is required.');
+    const authHeader = req.headers.authorization;
+    if (!authHeader || !authHeader.startsWith('Bearer ')) {
+      res.status(401);
+      throw new Error('Authorization header missing or malformed.');
     }
-    await revokeTokens(refreshToken);
+
+    const accessToken = authHeader.split(' ')[1];
+    const decoded = jwt.verify(accessToken, process.env.JWT_ACCESS_SECRET);
+    if (!decoded || !decoded.id) {
+      res.status(401);
+      throw new Error('Invalid access token.');
+    }
+
+    // Retrieve the refresh token for the authenticated user based on decoded id
+    const tokenRecord = await db.refreshToken.findFirst({
+      where: { userId: decoded.id },
+    });
+
+    if (!tokenRecord) {
+      res.status(400);
+      throw new Error('No refresh token found for user.');
+    }
+
+    await revokeTokens(tokenRecord.refreshToken);
     res.sendStatus(200);
   } catch (err) {
     next(err);
