@@ -375,7 +375,7 @@ router.get('/verify-email', async (req, res, next) => {
     }
 
     // Find the email verification record by otp
-    const record = await db.emailVerification.findUnique({
+    const record = await db.emailVerification.findFirst({
       where: { otp },
     });
 
