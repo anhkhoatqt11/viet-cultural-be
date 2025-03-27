@@ -47,19 +47,6 @@ const {
  *               full_name:
  *                 type: string
  *                 example: "John Doe"
- *               username:
- *                 type: string
- *                 example: "johndoe"
- *               date_of_birth:
- *                 type: string
- *                 format: date
- *                 example: "2003-11-21T01:11:11Z"
- *               location:
- *                 type: string
- *                 example: "New York"
- *               gender:
- *                 type: string
- *                 example: "Male"
  *     responses:
  *       200:
  *         description: Successfully registered
