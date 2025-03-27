@@ -332,7 +332,7 @@ router.post('/send-verification-email', async (req, res, next) => {
       html: `<p>Your OTP code is: <strong>${otp}</strong></p>`,
     });
 
-    res.json({ message: 'Verification email sent' });
+    res.json({ status: 200, message: 'Verification email sent' });
   } catch (err) {
     next(err);
   }
@@ -395,7 +395,7 @@ router.get('/verify-email', async (req, res, next) => {
       where: { id: record.id },
     });
 
-    res.json({ message: 'Email successfully verified' });
+    res.json({ status: 200, message: 'Email successfully verified' });
   } catch (err) {
     next(err);
   }
