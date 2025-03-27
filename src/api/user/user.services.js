@@ -24,6 +24,7 @@ function findUserById(id) {
   });
 }
 
+
 module.exports = {
   findUserByEmail,
   findUserById,
