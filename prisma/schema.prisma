@@ -147,6 +147,7 @@ model users {
   journeys          journeys[]
   support_tickets   support_tickets[]
   refreshTokens     RefreshToken[]
+  EmailVerification EmailVerification?
 }
 
 model RefreshToken {
@@ -158,4 +159,13 @@ model RefreshToken {
   createdAt   DateTime @default(now())
   updatedAt   DateTime @updatedAt
   expireAt    DateTime
+}
+
+model EmailVerification {
+  id                Int      @id @default(autoincrement())
+  userId            Int      @unique
+  verificationToken String   @db.VarChar(255)
+  createdAt         DateTime @default(now()) @db.Timestamp(6)
+  expiresAt         DateTime
+  users             users    @relation(fields: [userId], references: [id], onDelete: Cascade)
 }

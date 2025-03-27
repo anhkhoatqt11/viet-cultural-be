@@ -1,6 +1,8 @@
 const express = require('express');
 const bcrypt = require('bcrypt');
 const { generateTokens } = require('../../utils/jwt');
+const nodemailer = require('nodemailer');
+const { v4: uuidv4 } = require('uuid');
 const {
   addRefreshTokenToWhitelist,
   findRefreshToken,
@@ -14,6 +16,8 @@ const {
   createUserByEmailAndPassword,
   findUserById,
 } = require('../user/user.services');
+const { db } = require('../../utils/db');
+
 
 /**
  * @swagger
@@ -55,7 +59,7 @@ const {
  */
 router.post('/register', async (req, res, next) => {
   try {
-    const { email, password, full_name} = req.body;
+    const { email, password, full_name } = req.body;
     if (!email || !password) {
       res.status(400);
       throw new Error('You must provide an email and a password.');
@@ -132,6 +136,266 @@ router.post('/login', async (req, res, next) => {
     await addRefreshTokenToWhitelist({ refreshToken, userId: existingUser.id });
 
     res.json({ accessToken, refreshToken });
+  } catch (err) {
+    next(err);
+  }
+});
+
+
+/**
+ * @swagger
+ * /auth/logout:
+ *   post:
+ *     summary: Logout user by revoking their tokens
+ *     tags: [Auth]
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             required:
+ *               - refreshToken
+ *             properties:
+ *               refreshToken:
+ *                 type: string
+ *                 example: "some-valid-refresh-token"
+ *     responses:
+ *       200:
+ *         description: Successfully logged out
+ *       400:
+ *         description: Refresh token is required
+ *       403:
+ *         description: Invalid refresh token
+ */
+router.post('/logout', async (req, res, next) => {
+  try {
+    const { refreshToken } = req.body;
+    if (!refreshToken) {
+      res.status(400);
+      throw new Error('Refresh token is required.');
+    }
+    await revokeTokens(refreshToken);
+    res.sendStatus(200);
+  } catch (err) {
+    next(err);
+  }
+});
+
+
+
+/**
+ * @swagger
+ * /auth/refresh-token:
+ *   post:
+ *     summary: Refresh tokens
+ *     tags: [Auth]
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             required:
+ *               - refreshToken
+ *             properties:
+ *               refreshToken:
+ *                 type: string
+ *                 example: "some-valid-refresh-token"
+ *     responses:
+ *       200:
+ *         description: Successfully refreshed tokens
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 accessToken:
+ *                   type: string
+ *                   example: "new-access-token"
+ *                 refreshToken:
+ *                   type: string
+ *                   example: "new-refresh-token"
+ *       400:
+ *         description: Refresh token is required
+ *       403:
+ *         description: Invalid refresh token or User not found
+ */
+router.post('/refresh-token', async (req, res, next) => {
+  try {
+    const { refreshToken } = req.body;
+    if (!refreshToken) {
+      res.status(400);
+      throw new Error('Refresh token is required.');
+    }
+
+    const tokenRecord = await findRefreshToken(refreshToken);
+    if (!tokenRecord) {
+      res.status(403);
+      throw new Error('Invalid refresh token.');
+    }
+
+    const user = await findUserById(tokenRecord.userId);
+    if (!user) {
+      res.status(403);
+      throw new Error('User not found.');
+    }
+
+    // Invalidate the old refresh token
+    await deleteRefreshTokenById(tokenRecord.id);
+
+    const { accessToken, refreshToken: newRefreshToken } = generateTokens(user);
+    await addRefreshTokenToWhitelist({ refreshToken: newRefreshToken, userId: user.id });
+
+    res.json({ accessToken, refreshToken: newRefreshToken });
+  } catch (err) {
+    next(err);
+  }
+});
+
+
+const transporter = nodemailer.createTransport({
+  host: "smtp.gmail.com",
+  port: 587,
+  secure: false, // using STARTTLS
+  requireTLS: true,
+  auth: {
+    user: "anhkhoatqt11@gmail.com",
+    pass: "zirdmvffawibixcl",
+  },
+});
+
+/**
+ * @swagger
+ * /auth/send-verification-email:
+ *   post:
+ *     summary: Send email verification link.
+ *     tags: [Auth]
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             required:
+ *               - userId
+ *               - email
+ *             properties:
+ *               userId:
+ *                 type: integer
+ *                 example: 9
+ *               email:
+ *                 type: string
+ *                 example: "test@example.com"
+ *     responses:
+ *       200:
+ *         description: Verification email sent.
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 message:
+ *                   type: string
+ *                   example: "Verification email sent"
+ *       400:
+ *         description: User ID and email are required, or an error occurred.
+ */
+
+router.post('/send-verification-email', async (req, res, next) => {
+  try {
+    const { userId, email } = req.body;
+    if (!userId || !email) {
+      res.status(400);
+      throw new Error('User ID and email are required.');
+    }
+
+    // Generate a unique verification token
+    const verificationToken = uuidv4();
+    const expiresAt = new Date(Date.now() + 24 * 60 * 60 * 1000); // token expires in 24 hours
+
+    // Save the token in the EmailVerification model
+    await db.emailVerification.create({
+      data: {
+        userId,
+        verificationToken,
+        expiresAt,
+      },
+    });
+
+    const verificationLink = `${process.env.APP_BASE_URL}/auth/verify-email?token=${verificationToken}`;
+
+    // Send the verification email
+    await transporter.sendMail({
+      from: process.env.GMAIL_USER,
+      to: email,
+      subject: 'Verify Your Email',
+      text: `Please verify your email by clicking on the following link: ${verificationLink}`,
+      html: `<p>Please verify your email by clicking <a href="${verificationLink}">here</a>.</p>`,
+    });
+
+    res.json({ message: 'Verification email sent' });
+  } catch (err) {
+    next(err);
+  }
+});
+
+/**
+ * @swagger
+ * /auth/verify-email:
+ *   get:
+ *     summary: Verify user's email address.
+ *     tags: [Auth]
+ *     parameters:
+ *       - in: query
+ *         name: token
+ *         description: Verification token received in the email.
+ *         required: true
+ *         schema:
+ *           type: string
+ *           example: "verification-token-here"
+ *     responses:
+ *       200:
+ *         description: Email successfully verified.
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 message:
+ *                   type: string
+ *                   example: "Email successfully verified"
+ *       400:
+ *         description: Verification token is missing, invalid, or expired.
+ */
+router.get('/verify-email', async (req, res, next) => {
+  try {
+    const { token } = req.query;
+    if (!token) {
+      res.status(400);
+      throw new Error('Verification token is required.');
+    }
+
+    // Find the email verification record by token
+    const record = await db.emailVerification.findUnique({
+      where: { verificationToken: token },
+    });
+
+    if (!record || record.expiresAt < new Date()) {
+      res.status(400);
+      throw new Error('Invalid or expired verification token.');
+    }
+
+    // Mark the user as verified. Assumes the users model has an 'isVerified' field.
+    await db.users.update({
+      where: { id: record.userId },
+      data: { isVerified: true },
+    });
+
+    // Delete the verification record after successful verification
+    await db.emailVerification.delete({ where: { id: record.id } });
+
+    res.json({ message: 'Email successfully verified' });
   } catch (err) {
     next(err);
   }
