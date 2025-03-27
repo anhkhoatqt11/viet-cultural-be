@@ -140,6 +140,7 @@ model users {
   location          String?             @db.VarChar(255)
   gender            String?             @db.VarChar(20)
   created_at        DateTime?           @default(now()) @db.Timestamp(6)
+  isVerified        Boolean?            @default(false)
   achievements      achievements[]
   community_members community_members[]
   community_posts   community_posts[]
@@ -162,10 +163,10 @@ model RefreshToken {
 }
 
 model EmailVerification {
-  id                Int      @id @default(autoincrement())
-  userId            Int      @unique
-  verificationToken String   @db.VarChar(255)
-  createdAt         DateTime @default(now()) @db.Timestamp(6)
-  expiresAt         DateTime
-  users             users    @relation(fields: [userId], references: [id], onDelete: Cascade)
+  id      Int      @id @default(autoincrement())
+  userId  Int      @unique
+  otp     String   @db.VarChar(6) // OTP code, e.g., 6-digit numeric string
+  createdAt DateTime @default(now()) @db.Timestamp(6)
+  expiresAt DateTime
+  users   users    @relation(fields: [userId], references: [id], onDelete: Cascade)
 }

@@ -269,7 +269,7 @@ const transporter = nodemailer.createTransport({
  * @swagger
  * /auth/send-verification-email:
  *   post:
- *     summary: Send email verification link.
+ *     summary: Send email verification OTP.
  *     tags: [Auth]
  *     requestBody:
  *       required: true
@@ -310,28 +310,26 @@ router.post('/send-verification-email', async (req, res, next) => {
       throw new Error('User ID and email are required.');
     }
 
-    // Generate a unique verification token
-    const verificationToken = uuidv4();
-    const expiresAt = new Date(Date.now() + 24 * 60 * 60 * 1000); // token expires in 24 hours
+    // Generate a 6-digit OTP code
+    const otp = Math.floor(100000 + Math.random() * 900000).toString();
+    const expiresAt = new Date(Date.now() + 24 * 60 * 60 * 1000); // otp expires in 24 hours
 
-    // Save the token in the EmailVerification model
+    // Save the OTP in the EmailVerification model with updated fields
     await db.emailVerification.create({
       data: {
         userId,
-        verificationToken,
+        otp,
         expiresAt,
       },
     });
 
-    const verificationLink = `${process.env.SERVER_URL}/auth/verify-email?token=${verificationToken}`;
-
-    // Send the verification email
+    // Send the verification email containing the OTP
     await transporter.sendMail({
       from: process.env.GMAIL_USER,
       to: email,
-      subject: 'Verify Your Email',
-      text: `Please verify your email by clicking on the following link: ${verificationLink}`,
-      html: `<p>Please verify your email by clicking <a href="${verificationLink}">here</a>.</p>`,
+      subject: 'Verify Your Email - Your OTP Code',
+      text: `Your OTP code is: ${otp}`,
+      html: `<p>Your OTP code is: <strong>${otp}</strong></p>`,
     });
 
     res.json({ message: 'Verification email sent' });
@@ -344,16 +342,16 @@ router.post('/send-verification-email', async (req, res, next) => {
  * @swagger
  * /auth/verify-email:
  *   get:
- *     summary: Verify user's email address.
+ *     summary: Verify user's email address using an OTP code.
  *     tags: [Auth]
  *     parameters:
  *       - in: query
- *         name: token
- *         description: Verification token received in the email.
+ *         name: otp
+ *         description: OTP code received in the email.
  *         required: true
  *         schema:
  *           type: string
- *           example: "verification-token-here"
+ *           example: "123456"
  *     responses:
  *       200:
  *         description: Email successfully verified.
@@ -366,24 +364,24 @@ router.post('/send-verification-email', async (req, res, next) => {
  *                   type: string
  *                   example: "Email successfully verified"
  *       400:
- *         description: Verification token is missing, invalid, or expired.
+ *         description: OTP is missing, invalid, or expired.
  */
 router.get('/verify-email', async (req, res, next) => {
   try {
-    const { token } = req.query;
-    if (!token) {
+    const { otp } = req.query;
+    if (!otp) {
       res.status(400);
-      throw new Error('Verification token is required.');
+      throw new Error('OTP is required.');
     }
 
-    // Find the email verification record by token
+    // Find the email verification record by otp
     const record = await db.emailVerification.findUnique({
-      where: { verificationToken: token },
+      where: { otp },
     });
 
     if (!record || record.expiresAt < new Date()) {
       res.status(400);
-      throw new Error('Invalid or expired verification token.');
+      throw new Error('Invalid or expired OTP.');
     }
 
     // Mark the user as verified. Assumes the users model has an 'isVerified' field.
@@ -393,7 +391,9 @@ router.get('/verify-email', async (req, res, next) => {
     });
 
     // Delete the verification record after successful verification
-    await db.emailVerification.delete({ where: { id: record.id } });
+    await db.emailVerification.delete({
+      where: { id: record.id },
+    });
 
     res.json({ message: 'Email successfully verified' });
   } catch (err) {
@@ -402,3 +402,4 @@ router.get('/verify-email', async (req, res, next) => {
 });
 
 module.exports = router;
+
