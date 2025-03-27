@@ -323,7 +323,7 @@ router.post('/send-verification-email', async (req, res, next) => {
       },
     });
 
-    const verificationLink = `${process.env.APP_BASE_URL}/auth/verify-email?token=${verificationToken}`;
+    const verificationLink = `${process.env.SERVER_URL}/auth/verify-email?token=${verificationToken}`;
 
     // Send the verification email
     await transporter.sendMail({
