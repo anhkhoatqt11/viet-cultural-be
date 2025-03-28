@@ -136,6 +136,11 @@ router.post('/login', async (req, res, next) => {
     }
 
     const { accessToken, refreshToken } = generateTokens(existingUser);
+    res.cookie('refreshToken', refreshToken, {
+      httpOnly: true,
+      secure: true,
+      maxAge: 30 * 24 * 60 * 60 * 1000
+    });
     await addRefreshTokenToWhitelist({ refreshToken, userId: existingUser.id });
 
     res.json({ accessToken, refreshToken });
