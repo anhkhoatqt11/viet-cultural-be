@@ -4,6 +4,8 @@ const helmet = require('helmet');
 const cors = require('cors');
 const swaggerUi = require('swagger-ui-express');
 const swaggerJsDoc = require('swagger-jsdoc');
+const cookieParser = require('cookie-parser');
+
 
 require('dotenv').config();
 
@@ -36,6 +38,8 @@ const corsOptions = {
 app.use(cors(corsOptions));
 app.options('*', cors(corsOptions)); // Handle preflight requests globally
 app.use(express.json());
+app.use(cookieParser());
+
 
 
 app.use((req, res, next) => {

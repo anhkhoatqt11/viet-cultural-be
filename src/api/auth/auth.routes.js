@@ -105,10 +105,10 @@ router.post('/register', async (req, res, next) => {
  *             properties:
  *               email:
  *                 type: string
- *                 example: "test@example.com"
+ *                 example: "anhkhoatqt11@gmail.com"
  *               password:
  *                 type: string
- *                 example: "password123"
+ *                 example: "123123123"
  *     responses:
  *       200:
  *         description: Successful login, returns access and refresh tokens
@@ -156,18 +156,6 @@ router.post('/login', async (req, res, next) => {
  *   post:
  *     summary: Refresh tokens
  *     tags: [Auth]
- *     requestBody:
- *       required: true
- *       content:
- *         application/json:
- *           schema:
- *             type: object
- *             required:
- *               - refreshToken
- *             properties:
- *               refreshToken:
- *                 type: string
- *                 example: "some-valid-refresh-token"
  *     responses:
  *       200:
  *         description: Successfully refreshed tokens
@@ -189,7 +177,8 @@ router.post('/login', async (req, res, next) => {
  */
 router.post('/refresh-token', async (req, res, next) => {
   try {
-    const { refreshToken } = req.body;
+    const refreshToken = req.cookies.refreshToken;
+    console.log(refreshToken);
     if (!refreshToken) {
       res.status(400);
       throw new Error('Refresh token is required.');
@@ -213,7 +202,14 @@ router.post('/refresh-token', async (req, res, next) => {
     const { accessToken, refreshToken: newRefreshToken } = generateTokens(user);
     await addRefreshTokenToWhitelist({ refreshToken: newRefreshToken, userId: user.id });
 
-    res.json({ accessToken, refreshToken: newRefreshToken });
+    // Set the new refresh token as an HTTP-only cookie
+    res.cookie('refreshToken', newRefreshToken, {
+      httpOnly: true,
+      secure: true,
+      maxAge: 30 * 24 * 60 * 60 * 1000 // 30 days
+    });
+
+    res.json({ accessToken });
   } catch (err) {
     next(err);
   }
