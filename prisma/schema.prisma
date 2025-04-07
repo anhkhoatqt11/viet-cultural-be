@@ -7,155 +7,91 @@ datasource db {
   url      = env("DATABASE_URL")
 }
 
-model achievements {
-  id          Int       @id @default(autoincrement())
-  user_id     Int       @default(autoincrement())
-  name        String    @db.VarChar(255)
-  description String?
-  created_at  DateTime? @default(now()) @db.Timestamp(6)
-  users       users     @relation(fields: [user_id], references: [id], onDelete: Cascade, onUpdate: NoAction, map: "fk_user")
+model Region {
+  id          Int     @id @default(autoincrement())
+  regionName  String  @db.VarChar(100)
+  regionCode  String  @unique @db.VarChar(10)
+  mediaUrl    String? @db.VarChar(255)
+  description String? @db.VarChar(255)
+  games       Game[]
 }
 
-/// This table contains check constraints and requires additional setup for migrations. Visit https://pris.ly/d/check-constraints for more info.
-model communities {
-  id                Int                 @id(map: "Communities_pkey") @default(autoincrement())
-  name              String              @db.VarChar(225)
-  description       String?
-  member_quantity   Int                 @default(1)
-  created_at        DateTime?           @default(now()) @db.Timestamp(6)
-  community_members community_members[]
-  community_posts   community_posts[]
+model Game {
+  id        Int                        @id @default(autoincrement())
+  regionId  Int
+  region    Region                     @relation(fields: [regionId], references: [id], onDelete: Cascade)
+  gameType  String                     @db.VarChar(50)
+  gameData  Json
+  createdAt DateTime                   @default(now())
+  afterInfo AfterQuestionInformation[]
 }
 
-model community_members {
-  community_id Int         @default(autoincrement())
-  user_id      Int         @default(autoincrement())
-  joined_at    DateTime?   @db.Timestamptz(6)
-  communities  communities @relation(fields: [community_id], references: [id], onDelete: Cascade, onUpdate: NoAction, map: "fk_community")
-  users        users       @relation(fields: [user_id], references: [id], onDelete: Cascade, onUpdate: NoAction, map: "fk_user")
-
-  @@id([community_id, user_id], map: "Community_members_pkey")
+model AfterQuestionInformation {
+  id             Int  @id @default(autoincrement())
+  gameId         Int
+  questionNumber Int
+  images         Json
+  texts          Json
+  game           Game @relation(fields: [gameId], references: [id], onDelete: Cascade)
 }
 
-model community_posts {
-  id           Int         @id(map: "Community_posts_pkey") @default(autoincrement())
-  community_id Int         @default(autoincrement())
-  user_id      Int         @default(autoincrement())
-  subject      String      @db.VarChar(255)
-  title        String?     @db.VarChar(255)
-  content      String?
-  media        String[]
-  created_at   DateTime?   @default(now()) @db.Timestamp(6)
-  communities  communities @relation(fields: [community_id], references: [id], onDelete: Cascade, onUpdate: NoAction, map: "fk_community")
-  users        users       @relation(fields: [user_id], references: [id], onDelete: Cascade, onUpdate: NoAction, map: "fk_user")
-}
-
-model destinations {
-  id                Int                 @id(map: "Destinations_pkey") @default(autoincrement())
-  journey_id        Int                 @default(autoincrement())
-  name              String              @db.VarChar(225)
-  description       String
-  media             String[]
-  created_at        DateTime?           @default(now()) @db.Timestamp(6)
-  journeys          journeys            @relation(fields: [journey_id], references: [id], onDelete: Cascade, onUpdate: NoAction, map: "fk_journey")
-  games             games[]
-  journey_notebooks journey_notebooks[]
-  missions          missions[]
-}
-
-/// This table contains check constraints and requires additional setup for migrations. Visit https://pris.ly/d/check-constraints for more info.
-model games {
-  id             Int          @id @default(autoincrement())
-  destination_id Int          @default(autoincrement())
-  game_type      String?      @db.VarChar(50)
-  title          String       @db.VarChar(255)
-  description    String?
-  tutorial       String?
-  mechanics      Json?
-  media_assets   Json?
-  reward_points  Int?         @default(0)
-  created_at     DateTime?    @default(now()) @db.Timestamp(6)
-  destinations   destinations @relation(fields: [destination_id], references: [id], onDelete: Cascade, onUpdate: NoAction, map: "fk_destination")
-}
-
-model journey_notebooks {
-  id             Int          @id(map: "Journey_notebooks_pkey") @default(autoincrement())
-  owner_id       Int          @default(autoincrement())
-  destination_id Int          @default(autoincrement())
-  notes          String
-  created_at     DateTime?    @default(now()) @db.Timestamp(6)
-  destinations   destinations @relation(fields: [destination_id], references: [id], onDelete: Cascade, onUpdate: NoAction, map: "fk_destination")
-  users          users        @relation(fields: [owner_id], references: [id], onDelete: Cascade, onUpdate: NoAction, map: "fk_owner")
-}
-
-model journeys {
-  id           Int            @id(map: "Journeys_pkey") @default(autoincrement())
-  user_id      Int            @default(autoincrement())
-  name         String         @db.VarChar(225)
-  description  String
-  created_at   DateTime?      @default(now()) @db.Timestamp(6)
-  destinations destinations[]
-  users        users          @relation(fields: [user_id], references: [id], onDelete: Cascade, onUpdate: NoAction, map: "fk_user")
-}
-
-model missions {
-  id             Int          @id(map: "Missions_pkey") @default(autoincrement())
-  destination_id Int          @default(autoincrement())
-  name           String       @db.VarChar(225)
-  description    String?
-  reward_points  Int          @default(0)
-  created_at     DateTime?    @default(now()) @db.Timestamp(6)
-  destinations   destinations @relation(fields: [destination_id], references: [id], onDelete: Cascade, onUpdate: NoAction, map: "fk_destination")
-  rewards        rewards[]
-}
-
-/// This table contains check constraints and requires additional setup for migrations. Visit https://pris.ly/d/check-constraints for more info.
-model rewards {
-  reward_id  Int       @id @default(autoincrement())
-  mission_id Int       @default(autoincrement())
-  points     Int?      @default(0)
-  badges     String?
-  notes      String?
-  created_at DateTime? @default(now()) @db.Timestamp(6)
-  missions   missions  @relation(fields: [mission_id], references: [id], onDelete: Cascade, onUpdate: NoAction, map: "fk_mission")
-}
-
-model support_tickets {
-  id         Int       @id @default(autoincrement())
-  user_id    Int       @default(autoincrement())
-  title      String    @db.VarChar(255)
-  content    String
-  created_at DateTime? @default(now()) @db.Timestamp(6)
-  users      users     @relation(fields: [user_id], references: [id], onDelete: Cascade, onUpdate: NoAction, map: "fk_user")
-}
-
-model users {
-  id                Int                 @id(map: "Users_pkey") @default(autoincrement())
-  full_name         String              @db.VarChar(100)
+model User {
+  id                Int                @id @default(autoincrement())
+  full_name         String             @db.VarChar(100)
   username          String?             @unique @db.VarChar(50)
-  email             String              @unique @db.VarChar(100)
-  password          String              @default("https://static.vecteezy.com/system/resources/thumbnails/009/292/244/small/default-avatar-icon-of-social-media-user-vector.jpg")
-  avatart_url       String?
-  date_of_birth     DateTime?           @db.Date
-  location          String?             @db.VarChar(255)
-  gender            String?             @db.VarChar(20)
-  created_at        DateTime?           @default(now()) @db.Timestamp(6)
-  isVerified        Boolean?            @default(false)
-  achievements      achievements[]
-  community_members community_members[]
-  community_posts   community_posts[]
-  journey_notebooks journey_notebooks[]
-  journeys          journeys[]
-  support_tickets   support_tickets[]
+  email             String             @unique @db.VarChar(100)
+  password          String             @db.VarChar(255)
+  avatarUrl         String?            @db.VarChar(255) @default("https://example.com/default-avatar.png")
+  dateOfBirth       DateTime?
+  location          String?            @db.VarChar(255)
+  gender            String?            @db.VarChar(20)
+  isVerified        Boolean            @default(false)
+  achievements      Achievement[]
+  posts             Post[]
+  comments          Comment[]
   refreshTokens     RefreshToken[]
-  EmailVerification EmailVerification?
+  emailVerification EmailVerification?
+}
+
+model Achievement {
+  id          Int    @id @default(autoincrement())
+  userId      Int
+  name        String @db.VarChar(255)
+  description String @db.VarChar(255)
+  stars       Int
+  user        User   @relation(fields: [userId], references: [id], onDelete: Cascade)
+}
+
+model Post {
+  id       Int       @id @default(autoincrement())
+  userId   Int
+  title    String    @db.VarChar(255)
+  question String
+  media    Json
+  tags     Json
+  user     User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+  comments Comment[]
+}
+
+model Comment {
+  id       Int       @id @default(autoincrement())
+  postId   Int
+  userId   Int
+  content  String
+  likes    Int       @default(0)
+  dislikes Int       @default(0)
+  parentId Int?
+  post     Post      @relation(fields: [postId], references: [id], onDelete: Cascade)
+  user     User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+  parent   Comment?  @relation("CommentReplies", fields: [parentId], references: [id])
+  replies  Comment[] @relation("CommentReplies")
 }
 
 model RefreshToken {
-  id          String   @id @unique @default(uuid())
+  id          String   @id @default(uuid())
   hashedToken String   @unique
   userId      Int
-  User        users    @relation(fields: [userId], references: [id], onDelete: Cascade)
+  user        User     @relation(fields: [userId], references: [id], onDelete: Cascade)
   revoked     Boolean  @default(false)
   createdAt   DateTime @default(now())
   updatedAt   DateTime @updatedAt
@@ -163,10 +99,10 @@ model RefreshToken {
 }
 
 model EmailVerification {
-  id      Int      @id @default(autoincrement())
-  userId  Int      @unique
-  otp     String   @db.VarChar(6) // OTP code, e.g., 6-digit numeric string
+  id        Int      @id @default(autoincrement())
+  userId    Int      @unique
+  otp       String   @db.VarChar(6) // 6-digit OTP code
   createdAt DateTime @default(now()) @db.Timestamp(6)
   expiresAt DateTime
-  users   users    @relation(fields: [userId], references: [id], onDelete: Cascade)
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
 }

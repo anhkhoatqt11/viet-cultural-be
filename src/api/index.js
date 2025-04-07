@@ -1,9 +1,10 @@
 const express = require('express');
 const auth = require('./auth/auth.routes');
 const users = require('./user/user.routes');
-const destination = require('./destination/destination.routes')
-const community = require('./community/community.routes')
-const journey = require('./journey/journey.routes')
+const region = require('./region/region.routes');
+const game = require('./game/game.routes');
+const afterInfo = require('./afterInfo/afterInfo.routes');
+const post = require('./post/post.routes');
 const router = express.Router();
 
 router.get('/', (req, res) => {
@@ -16,11 +17,12 @@ router.use('/auth', auth);
 
 router.use('/users', users);
 
-router.use('/destination', destination)
+router.use('/region', region);
 
-router.use('/community', community)
+router.use('/game', game);
 
-router.use('/journey', journey)
+router.use('/afterInfo', afterInfo);
 
+router.use('/post', post);
 
 module.exports = router;
