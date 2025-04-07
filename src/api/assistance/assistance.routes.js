@@ -9,7 +9,7 @@ const model = genAI.getGenerativeModel({ model: 'gemini-2.0-flash' })
 
 /**
  * @swagger
- * /:
+ * /assistance:
  *   post:
  *     summary: Generate a response using Google Generative AI
  *     description: Accepts a prompt and generates a response using the Gemini model.
