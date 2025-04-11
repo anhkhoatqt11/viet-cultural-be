@@ -8,22 +8,25 @@ datasource db {
 }
 
 model Region {
-  id          Int     @id @default(autoincrement())
-  regionName  String  @db.VarChar(100)
-  regionCode  String  @unique @db.VarChar(10)
-  mediaUrl    String? @db.VarChar(255)
-  description String? @db.VarChar(255)
-  games       Game[]
+  id            Int             @id @default(autoincrement())
+  regionName    String          @db.VarChar(100)
+  regionCode    String          @unique @db.VarChar(10)
+  mediaUrl      String?         @db.VarChar(255)
+  description   String?         @db.VarChar(255)
+  games         Game[]
+  puzzle_game   puzzle_game[]
+  quiz_game     quiz_game[]
+  treasure_game treasure_game[]
 }
 
 model Game {
   id        Int                        @id @default(autoincrement())
   regionId  Int
-  region    Region                     @relation(fields: [regionId], references: [id], onDelete: Cascade)
   gameType  String                     @db.VarChar(50)
   gameData  Json
   createdAt DateTime                   @default(now())
   afterInfo AfterQuestionInformation[]
+  region    Region                     @relation(fields: [regionId], references: [id], onDelete: Cascade)
 }
 
 model AfterQuestionInformation {
@@ -38,19 +41,20 @@ model AfterQuestionInformation {
 model User {
   id                Int                @id @default(autoincrement())
   full_name         String             @db.VarChar(100)
-  username          String?             @unique @db.VarChar(50)
+  username          String?            @unique @db.VarChar(50)
   email             String             @unique @db.VarChar(100)
   password          String             @db.VarChar(255)
-  avatarUrl         String?            @db.VarChar(255) @default("https://example.com/default-avatar.png")
+  avatarUrl         String?            @default("https://example.com/default-avatar.png") @db.VarChar(255)
   dateOfBirth       DateTime?
   location          String?            @db.VarChar(255)
   gender            String?            @db.VarChar(20)
   isVerified        Boolean            @default(false)
   achievements      Achievement[]
-  posts             Post[]
   comments          Comment[]
-  refreshTokens     RefreshToken[]
   emailVerification EmailVerification?
+  posts             Post[]
+  refreshTokens     RefreshToken[]
+  comment_reaction  comment_reaction[]
 }
 
 model Achievement {
@@ -69,40 +73,141 @@ model Post {
   question String
   media    Json
   tags     Json
-  user     User      @relation(fields: [userId], references: [id], onDelete: Cascade)
   comments Comment[]
+  user     User      @relation(fields: [userId], references: [id], onDelete: Cascade)
 }
 
 model Comment {
-  id       Int       @id @default(autoincrement())
-  postId   Int
-  userId   Int
-  content  String
-  likes    Int       @default(0)
-  dislikes Int       @default(0)
-  parentId Int?
-  post     Post      @relation(fields: [postId], references: [id], onDelete: Cascade)
-  user     User      @relation(fields: [userId], references: [id], onDelete: Cascade)
-  parent   Comment?  @relation("CommentReplies", fields: [parentId], references: [id])
-  replies  Comment[] @relation("CommentReplies")
+  id               Int                @id @default(autoincrement())
+  postId           Int
+  userId           Int
+  content          String
+  likes            Int                @default(0)
+  dislikes         Int                @default(0)
+  parentId         Int?
+  parent           Comment?           @relation("CommentReplies", fields: [parentId], references: [id])
+  replies          Comment[]          @relation("CommentReplies")
+  post             Post               @relation(fields: [postId], references: [id], onDelete: Cascade)
+  user             User               @relation(fields: [userId], references: [id], onDelete: Cascade)
+  comment_reaction comment_reaction[]
 }
 
 model RefreshToken {
   id          String   @id @default(uuid())
   hashedToken String   @unique
   userId      Int
-  user        User     @relation(fields: [userId], references: [id], onDelete: Cascade)
   revoked     Boolean  @default(false)
   createdAt   DateTime @default(now())
   updatedAt   DateTime @updatedAt
   expireAt    DateTime
+  user        User     @relation(fields: [userId], references: [id], onDelete: Cascade)
 }
 
 model EmailVerification {
   id        Int      @id @default(autoincrement())
   userId    Int      @unique
-  otp       String   @db.VarChar(6) // 6-digit OTP code
+  otp       String   @db.VarChar(6)
   createdAt DateTime @default(now()) @db.Timestamp(6)
   expiresAt DateTime
   user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+}
+
+model comment_reaction {
+  id            Int                @id @default(autoincrement())
+  user_id       Int
+  comment_id    Int
+  reaction_type reaction_type_enum
+  created_at    DateTime?          @default(now()) @db.Timestamp(6)
+  Comment       Comment            @relation(fields: [comment_id], references: [id], onDelete: Cascade, onUpdate: NoAction, map: "fk_comment")
+  User          User               @relation(fields: [user_id], references: [id], onDelete: Cascade, onUpdate: NoAction, map: "fk_user")
+}
+
+model game_type {
+  id            Int             @id @default(autoincrement())
+  code          game_code_enum  @unique
+  name          String
+  puzzle_game   puzzle_game[]
+  quiz_game     quiz_game[]
+  treasure_game treasure_game[]
+}
+
+model puzzle_game {
+  id            Int             @id @default(autoincrement())
+  regionid      Int?
+  gametype      Int?
+  imageurl      String?
+  Region        Region?         @relation(fields: [regionid], references: [id], onDelete: Cascade, onUpdate: NoAction, map: "fk_region")
+  game_type     game_type?      @relation(fields: [gametype], references: [id], onDelete: Cascade, onUpdate: NoAction)
+  puzzle_pieces puzzle_pieces[]
+}
+
+model puzzle_pieces {
+  id              Int          @id @default(autoincrement())
+  puzzleid        Int?
+  piece_index     Int
+  x_position      Int?
+  y_position      Int?
+  correct_x       Int
+  correct_y       Int
+  image_piece_url String?
+  puzzle_game     puzzle_game? @relation(fields: [puzzleid], references: [id], onDelete: Cascade, onUpdate: NoAction)
+}
+
+model quiz_game {
+  id           Int            @id @default(autoincrement())
+  regionid     Int?
+  gametype     Int?
+  title        String         @db.VarChar(100)
+  description  String?
+  game_type    game_type?     @relation(fields: [gametype], references: [id], onDelete: Cascade, onUpdate: NoAction)
+  Region       Region?        @relation(fields: [regionid], references: [id], onDelete: Cascade, onUpdate: NoAction)
+  quiz_game_qa quiz_game_qa[]
+}
+
+model quiz_game_qa {
+  id             Int        @id @default(autoincrement())
+  quiz_game_id   Int?
+  question       String
+  wrong_answers  Json
+  correct_answer String
+  quiz_game      quiz_game? @relation(fields: [quiz_game_id], references: [id], onDelete: Cascade, onUpdate: NoAction)
+}
+
+model treasure_connection_cards {
+  id               Int            @id @default(autoincrement())
+  treasure_game_id Int?
+  card_type        card_type_enum
+  card_value       String?
+  image_url        String?
+  pair_id          Int
+  position         Int?
+  treasure_game    treasure_game? @relation(fields: [treasure_game_id], references: [id], onDelete: Cascade, onUpdate: NoAction)
+}
+
+model treasure_game {
+  id                        Int                         @id @default(autoincrement())
+  regionid                  Int?
+  gametype                  Int?
+  title                     String?                     @db.VarChar(100)
+  description               String?
+  treasure_connection_cards treasure_connection_cards[]
+  game_type                 game_type?                  @relation(fields: [gametype], references: [id], onDelete: Cascade, onUpdate: NoAction)
+  Region                    Region?                     @relation(fields: [regionid], references: [id], onDelete: Cascade, onUpdate: NoAction)
+}
+
+enum card_type_enum {
+  text
+  image
+}
+
+enum game_code_enum {
+  puzzle
+  quiz
+  word
+  treasure
+}
+
+enum reaction_type_enum {
+  Like
+  Dislike
 }
