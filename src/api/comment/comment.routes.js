@@ -13,7 +13,7 @@ const {
 
 /**
  * @swagger
- * /create-comment:
+ * comment/create-comment:
  *   post:
  *     tags: [Comment]
  *     summary: Create a new comment
@@ -59,7 +59,7 @@ router.post('/create-comment', async (req, res) => {
 
 /**
  * @swagger
- * /{id}:
+ * comment/{id}:
  *   get:
  *     tags: [Comment]
  *     summary: Get a comment by ID
@@ -100,7 +100,7 @@ router.get('/:id', async (req, res) => {
 
 /**
  * @swagger
- * /update-comment/{id}:
+ * comment/update-comment/{id}:
  *   patch:
  *     tags: [Comment]
  *     summary: Update a comment by ID
@@ -153,7 +153,7 @@ router.patch('/update-comment/:id', async (req, res) => {
 
 /**
  * @swagger
- * /delete-comment/{id}:
+ * comment/delete-comment/{id}:
  *   delete:
  *     tags: [Comment]
  *     summary: Delete a comment by ID
@@ -193,7 +193,7 @@ router.delete('/delete-comment/:id', async (req, res) => {
 
 /**
  * @swagger
- * /like-comment/{id}:
+ * comment/like-comment/{id}:
  *   post:
  *     tags: [Comment]
  *     summary: Like a comment
