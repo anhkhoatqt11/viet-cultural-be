@@ -13,29 +13,20 @@ model Region {
   regionCode    String          @unique @db.VarChar(10)
   mediaUrl      String?         @db.VarChar(255)
   description   String?         @db.VarChar(255)
-  games         Game[]
   puzzle_game   puzzle_game[]
   quiz_game     quiz_game[]
   treasure_game treasure_game[]
 }
 
-model Game {
-  id        Int                        @id @default(autoincrement())
-  regionId  Int
-  gameType  String                     @db.VarChar(50)
-  gameData  Json
-  createdAt DateTime                   @default(now())
-  afterInfo AfterQuestionInformation[]
-  region    Region                     @relation(fields: [regionId], references: [id], onDelete: Cascade)
-}
-
 model AfterQuestionInformation {
-  id             Int  @id @default(autoincrement())
+  id             Int            @id @default(autoincrement())
   gameId         Int
   questionNumber Int
   images         Json
   texts          Json
-  game           Game @relation(fields: [gameId], references: [id], onDelete: Cascade)
+  quiz_game      quiz_game?     @relation(fields: [gameId], references: [id], onDelete: Cascade, onUpdate: NoAction, map: "AfterQuestionInformation_quiz_game_fkey")
+  puzzle_game    puzzle_game?   @relation(fields: [gameId], references: [id], onDelete: Cascade, onUpdate: NoAction, map: "AfterQuestionInformation_puzzle_game_fkey")
+  treasure_game  treasure_game? @relation(fields: [gameId], references: [id], onDelete: Cascade, onUpdate: NoAction, map: "AfterQuestionInformation_treasure_game_fkey")
 }
 
 model User {
@@ -72,9 +63,15 @@ model Post {
   title    String    @db.VarChar(255)
   question String
   media    Json
-  tags     Json
+  tags     Tags[]
   comments Comment[]
   user     User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+}
+
+model Tags {
+  id    Int    @id @default(autoincrement())
+  name  String @unique @db.VarChar(50)
+  posts Post[]
 }
 
 model Comment {
@@ -132,13 +129,14 @@ model game_type {
 }
 
 model puzzle_game {
-  id            Int             @id @default(autoincrement())
-  regionid      Int?
-  gametype      Int?
-  imageurl      String?
-  Region        Region?         @relation(fields: [regionid], references: [id], onDelete: Cascade, onUpdate: NoAction, map: "fk_region")
-  game_type     game_type?      @relation(fields: [gametype], references: [id], onDelete: Cascade, onUpdate: NoAction)
-  puzzle_pieces puzzle_pieces[]
+  id                       Int                        @id @default(autoincrement())
+  regionid                 Int?
+  gametype                 Int?
+  imageurl                 String?
+  Region                   Region?                    @relation(fields: [regionid], references: [id], onDelete: Cascade, onUpdate: NoAction, map: "fk_region")
+  game_type                game_type?                 @relation(fields: [gametype], references: [id], onDelete: Cascade, onUpdate: NoAction)
+  puzzle_pieces            puzzle_pieces[]
+  afterQuestionInformation AfterQuestionInformation[]
 }
 
 model puzzle_pieces {
@@ -154,14 +152,15 @@ model puzzle_pieces {
 }
 
 model quiz_game {
-  id           Int            @id @default(autoincrement())
-  regionid     Int?
-  gametype     Int?
-  title        String         @db.VarChar(100)
-  description  String?
-  game_type    game_type?     @relation(fields: [gametype], references: [id], onDelete: Cascade, onUpdate: NoAction)
-  Region       Region?        @relation(fields: [regionid], references: [id], onDelete: Cascade, onUpdate: NoAction)
-  quiz_game_qa quiz_game_qa[]
+  id                       Int                        @id @default(autoincrement())
+  regionid                 Int?
+  gametype                 Int?
+  title                    String                     @db.VarChar(100)
+  description              String?
+  game_type                game_type?                 @relation(fields: [gametype], references: [id], onDelete: Cascade, onUpdate: NoAction)
+  Region                   Region?                    @relation(fields: [regionid], references: [id], onDelete: Cascade, onUpdate: NoAction)
+  quiz_game_qa             quiz_game_qa[]
+  afterQuestionInformation AfterQuestionInformation[]
 }
 
 model quiz_game_qa {
@@ -193,6 +192,7 @@ model treasure_game {
   treasure_connection_cards treasure_connection_cards[]
   game_type                 game_type?                  @relation(fields: [gametype], references: [id], onDelete: Cascade, onUpdate: NoAction)
   Region                    Region?                     @relation(fields: [regionid], references: [id], onDelete: Cascade, onUpdate: NoAction)
+  afterQuestionInformation  AfterQuestionInformation[]
 }
 
 enum card_type_enum {
