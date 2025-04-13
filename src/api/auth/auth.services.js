@@ -45,20 +45,10 @@ function revokeTokens(userId) {
 }
 
 
-function createEmailOTP(userId, otp, expireAt) {
-  return db.emailVerification.create({
-    data: {
-      userId,
-      otp,
-      expireAt,
-    },
-  });
-}
 
 module.exports = {
   addRefreshTokenToWhitelist,
   findRefreshToken,
   deleteRefreshTokenById,
   revokeTokens,
-  createEmailOTP,
 };
