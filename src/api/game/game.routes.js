@@ -1,9 +1,8 @@
 const express = require('express');
 const router = express.Router();
 
-const { db } = require('../../utils/db');
 
-
+const { getGameData } = require('./game.services');
 
 /**
  * @swagger
@@ -23,8 +22,13 @@ const { db } = require('../../utils/db');
  *         name: gameType
  *         schema:
  *           type: string
+ *           enum:
+ *             - word
+ *             - quiz
+ *             - puzzle
+ *             - treasure
  *         required: true
- *         description: The code of the game type (e.g., word, quiz, puzzle, treasure)
+ *         description: The code of the game type
  *     responses:
  *       200:
  *         description: Successfully retrieved game data
@@ -44,102 +48,13 @@ router.post('/get-gamedata', async (req, res, next) => {
     try {
         const { regionId, gameType } = req.query;
 
-        const gameTypeData = await db.game_type.findUnique({
-            where: { code: gameType },
-            include: {
-                word_games: {
-                    where: { regionid: Number(regionId) },
-                },
-                quiz_games: {
-                    where: { regionid: Number(regionId) },
-                    include: {
-                        questions: true,
-                    },
-                },
-                puzzle_games: {
-                    where: { regionid: Number(regionId) },
-                    include: {
-                        pieces: true,
-                    },
-                },
-                treasure_games: {
-                    where: { regionid: Number(regionId) },
-                    include: {
-                        cards: true,
-                    },
-                },
-            },
-        });
+        const data = await getGameData(regionId, gameType);
 
-        if (!gameTypeData) return res.status(404).json({ message: 'Game type not found' });
-
-        let formattedData = {};
-
-        switch (gameTypeData.code) {
-            case 'word':
-                formattedData = gameTypeData.word_games.map((game) => ({
-                    id: game.id,
-                    question: game.question,
-                    hint: game.hint,
-                    answer: game.answer,
-                    correct_letters: game.correct_letters,
-                    letters: game.letters,
-                }));
-                break;
-
-            case 'quiz':
-                formattedData = {
-                    question: gameTypeData.quiz_games.flatMap((game) =>
-                        game.questions.map((q) => ({
-                            id: q.id,
-                            question: q.question,
-                            options: {
-                                A: q.optionA,
-                                B: q.optionB,
-                                C: q.optionC,
-                                ...(q.optionD && { D: q.optionD }),
-                            },
-                            correctAnswer: q.correctAnswer,
-                        }))
-                    ),
-                };
-                break;
-
-            case 'puzzle':
-                formattedData = gameTypeData.puzzle_games.map((game) => ({
-                    id: game.id,
-                    imageurl: game.imageurl,
-                    pieces: game.pieces.map((piece) => ({
-                        id: piece.id,
-                        piece_index: piece.piece_index,
-                        x_position: piece.x_position,
-                        y_position: piece.y_position,
-                        correct_x: piece.correct_x,
-                        correct_y: piece.correct_y,
-                        image_piece_url: piece.image_piece_url,
-                    })),
-                }));
-                break;
-
-            case 'treasure':
-                formattedData = gameTypeData.treasure_games.map((game) => ({
-                    id: game.id,
-                    title: game.title,
-                    description: game.description,
-                    cardsData: game.cards.map((card) => ({
-                        type: card.type,
-                        value: card.value,
-                        matchGroup: card.matchGroup,
-                    })),
-                }));
-                break;
-
-            default:
-                return res.status(400).json({ message: 'Unsupported game type' });
-        }
-
-        res.json(formattedData);
+        res.json(data);
     } catch (err) {
+        if (err.message === 'Game type not found' || err.message === 'Unsupported game type') {
+            return res.status(400).json({ message: err.message });
+        }
         next(err);
     }
 });
