@@ -46,7 +46,7 @@ function revokeTokens(userId) {
 
 
 function createEmailOTP(userId, otp, expireAt) {
-  return db.emailOTP.create({
+  return db.emailVerification.create({
     data: {
       userId,
       otp,
