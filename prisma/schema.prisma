@@ -8,25 +8,26 @@ datasource db {
 }
 
 model Region {
-  id            Int             @id @default(autoincrement())
-  regionName    String          @db.VarChar(100)
-  regionCode    String          @unique @db.VarChar(10)
-  mediaUrl      String?         @db.VarChar(255)
-  description   String?         @db.VarChar(255)
-  puzzle_game   puzzle_game[]
-  quiz_game     quiz_game[]
-  treasure_game treasure_game[]
+  id          Int        @id @default(autoincrement())
+  regionName  String     @db.VarChar(100)
+  regionCode  String     @unique @db.VarChar(10)
+  mediaUrl    String?    @db.VarChar(255)
+  description String?    @db.VarChar(255)
+  wordGames   WordGame[]
+  QuizGame     QuizGame[]
+  TreasureGame TreasureGame[]
+  PuzzleGame   PuzzleGame[]
 }
 
 model AfterQuestionInformation {
-  id             Int            @id @default(autoincrement())
+  id             Int  @id @default(autoincrement())
   gameId         Int
   questionNumber Int
   images         Json
   texts          Json
-  quiz_game      quiz_game?     @relation(fields: [gameId], references: [id], onDelete: Cascade, onUpdate: NoAction, map: "AfterQuestionInformation_quiz_game_fkey")
-  puzzle_game    puzzle_game?   @relation(fields: [gameId], references: [id], onDelete: Cascade, onUpdate: NoAction, map: "AfterQuestionInformation_puzzle_game_fkey")
-  treasure_game  treasure_game? @relation(fields: [gameId], references: [id], onDelete: Cascade, onUpdate: NoAction, map: "AfterQuestionInformation_treasure_game_fkey")
+
+  PuzzleGame   PuzzleGame? @relation(fields: [puzzleGameId], references: [id])
+  puzzleGameId Int?
 }
 
 model User {
@@ -110,92 +111,6 @@ model EmailVerification {
   user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
 }
 
-model comment_reaction {
-  id            Int                @id @default(autoincrement())
-  user_id       Int
-  comment_id    Int
-  reaction_type reaction_type_enum
-  created_at    DateTime?          @default(now()) @db.Timestamp(6)
-  Comment       Comment            @relation(fields: [comment_id], references: [id], onDelete: Cascade, onUpdate: NoAction, map: "fk_comment")
-  User          User               @relation(fields: [user_id], references: [id], onDelete: Cascade, onUpdate: NoAction, map: "fk_user")
-}
-
-model game_type {
-  id            Int             @id @default(autoincrement())
-  code          game_code_enum  @unique
-  name          String
-  puzzle_game   puzzle_game[]
-  quiz_game     quiz_game[]
-  treasure_game treasure_game[]
-}
-
-model puzzle_game {
-  id                       Int                        @id @default(autoincrement())
-  regionid                 Int?
-  gametype                 Int?
-  imageurl                 String?
-  Region                   Region?                    @relation(fields: [regionid], references: [id], onDelete: Cascade, onUpdate: NoAction, map: "fk_region")
-  game_type                game_type?                 @relation(fields: [gametype], references: [id], onDelete: Cascade, onUpdate: NoAction)
-  puzzle_pieces            puzzle_pieces[]
-  afterQuestionInformation AfterQuestionInformation[]
-}
-
-model puzzle_pieces {
-  id              Int          @id @default(autoincrement())
-  puzzleid        Int?
-  piece_index     Int
-  x_position      Int?
-  y_position      Int?
-  correct_x       Int
-  correct_y       Int
-  image_piece_url String?
-  puzzle_game     puzzle_game? @relation(fields: [puzzleid], references: [id], onDelete: Cascade, onUpdate: NoAction)
-}
-
-model quiz_game {
-  id                       Int                        @id @default(autoincrement())
-  regionid                 Int?
-  gametype                 Int?
-  title                    String                     @db.VarChar(100)
-  description              String?
-  game_type                game_type?                 @relation(fields: [gametype], references: [id], onDelete: Cascade, onUpdate: NoAction)
-  Region                   Region?                    @relation(fields: [regionid], references: [id], onDelete: Cascade, onUpdate: NoAction)
-  quiz_game_qa             quiz_game_qa[]
-  afterQuestionInformation AfterQuestionInformation[]
-}
-
-model quiz_game_qa {
-  id             Int        @id @default(autoincrement())
-  quiz_game_id   Int?
-  question       String
-  wrong_answers  Json
-  correct_answer String
-  quiz_game      quiz_game? @relation(fields: [quiz_game_id], references: [id], onDelete: Cascade, onUpdate: NoAction)
-}
-
-model treasure_connection_cards {
-  id               Int            @id @default(autoincrement())
-  treasure_game_id Int?
-  card_type        card_type_enum
-  card_value       String?
-  image_url        String?
-  pair_id          Int
-  position         Int?
-  treasure_game    treasure_game? @relation(fields: [treasure_game_id], references: [id], onDelete: Cascade, onUpdate: NoAction)
-}
-
-model treasure_game {
-  id                        Int                         @id @default(autoincrement())
-  regionid                  Int?
-  gametype                  Int?
-  title                     String?                     @db.VarChar(100)
-  description               String?
-  treasure_connection_cards treasure_connection_cards[]
-  game_type                 game_type?                  @relation(fields: [gametype], references: [id], onDelete: Cascade, onUpdate: NoAction)
-  Region                    Region?                     @relation(fields: [regionid], references: [id], onDelete: Cascade, onUpdate: NoAction)
-  afterQuestionInformation  AfterQuestionInformation[]
-}
-
 model PasswordReset {
   id        Int      @id @default(autoincrement())
   userId    Int
@@ -206,16 +121,115 @@ model PasswordReset {
   @@map("password_resets")
 }
 
-enum card_type_enum {
-  text
-  image
+model comment_reaction {
+  id            Int                @id @default(autoincrement())
+  user_id       Int
+  comment_id    Int
+  reaction_type reaction_type_enum
+  created_at    DateTime?          @default(now()) @db.Timestamp(6)
+  Comment       Comment            @relation(fields: [comment_id], references: [id], onDelete: Cascade, onUpdate: NoAction, map: "fk_comment")
+  User          User               @relation(fields: [user_id], references: [id], onDelete: Cascade, onUpdate: NoAction, map: "fk_user")
 }
 
-enum game_code_enum {
+model WordGame {
+  id              Int        @id @default(autoincrement())
+  regionid        Int?
+  gametype        Int?
+  question        String
+  hint            String?
+  answer          String
+  correct_letters String[]   @db.Text
+  letters         String[]   @db.Text
+  Region          Region?    @relation(fields: [regionid], references: [id], onDelete: Cascade)
+  game_type       game_type? @relation(fields: [gametype], references: [id], onDelete: Cascade)
+}
+
+model QuizGame {
+  id          Int                @id @default(autoincrement())
+  regionid    Int?
+  gametype    Int?
+  title       String
+  description String?
+  Region      Region?            @relation(fields: [regionid], references: [id], onDelete: Cascade)
+  game_type   game_type?         @relation(fields: [gametype], references: [id], onDelete: Cascade)
+  questions   QuizGameQuestion[]
+}
+
+model QuizGameQuestion {
+  id            Int      @id @default(autoincrement())
+  quiz_game_id  Int
+  question      String
+  optionA       String
+  optionB       String
+  optionC       String
+  optionD       String? // ✅ Made optional for more flexible quizzes
+  correctAnswer String   @db.VarChar(1)
+  QuizGame      QuizGame @relation(fields: [quiz_game_id], references: [id], onDelete: Cascade)
+}
+
+model TreasureGame {
+  id          Int            @id @default(autoincrement())
+  regionid    Int?
+  gametype    Int?
+  title       String?
+  description String?
+  Region      Region?        @relation(fields: [regionid], references: [id], onDelete: Cascade)
+  game_type   game_type?     @relation(fields: [gametype], references: [id], onDelete: Cascade)
+  cards       TreasureCard[]
+}
+
+model TreasureCard {
+  id               Int          @id @default(autoincrement())
+  treasure_game_id Int
+  type             CardType
+  value            String
+  matchGroup       Int
+  TreasureGame     TreasureGame @relation(fields: [treasure_game_id], references: [id], onDelete: Cascade)
+}
+
+model PuzzleGame {
+  id                       Int                        @id @default(autoincrement())
+  regionid                 Int?
+  gametype                 Int?
+  imageurl                 String?
+  Region                   Region?                    @relation(fields: [regionid], references: [id], onDelete: Cascade)
+  game_type                game_type?                 @relation(fields: [gametype], references: [id], onDelete: Cascade)
+  pieces                   PuzzlePiece[]
+  afterQuestionInformation AfterQuestionInformation[]
+}
+
+model PuzzlePiece {
+  id              Int        @id @default(autoincrement())
+  puzzleid        Int
+  piece_index     Int
+  x_position      Int?
+  y_position      Int?
+  correct_x       Int
+  correct_y       Int
+  image_piece_url String?
+  puzzle_game     PuzzleGame @relation(fields: [puzzleid], references: [id], onDelete: Cascade)
+}
+
+model game_type {
+  id             Int            @id @default(autoincrement())
+  code           GameCodeEnum   @unique
+  name           String
+  word_games     WordGame[]
+  quiz_games     QuizGame[]
+  treasure_games TreasureGame[]
+  puzzle_games   PuzzleGame[]
+}
+
+enum GameCodeEnum {
   puzzle
   quiz
   word
   treasure
+}
+
+enum CardType {
+  text
+  image
 }
 
 enum reaction_type_enum {
