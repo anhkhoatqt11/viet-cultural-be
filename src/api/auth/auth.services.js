@@ -44,9 +44,21 @@ function revokeTokens(userId) {
   });
 }
 
+
+function createEmailOTP(userId, otp, expireAt) {
+  return db.emailOTP.create({
+    data: {
+      userId,
+      otp,
+      expireAt,
+    },
+  });
+}
+
 module.exports = {
   addRefreshTokenToWhitelist,
   findRefreshToken,
   deleteRefreshTokenById,
   revokeTokens,
+  createEmailOTP,
 };
