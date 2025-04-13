@@ -261,12 +261,8 @@ const transporter = nodemailer.createTransport({
  *           schema:
  *             type: object
  *             required:
- *               - userId
  *               - email
  *             properties:
- *               userId:
- *                 type: integer
- *                 example: 9
  *               email:
  *                 type: string
  *                 example: "test@example.com"
@@ -282,29 +278,29 @@ const transporter = nodemailer.createTransport({
  *                   type: string
  *                   example: "Verification email sent"
  *       400:
- *         description: User ID and email are required, or an error occurred.
+ *         description: Email is required, user not found, or an error occurred.
  */
 
 router.post('/send-verification-email', async (req, res, next) => {
   try {
-    const { userId, email } = req.body;
-    if (!userId || !email) {
+    const { email } = req.body;
+    if (!email) {
       res.status(400);
-      throw new Error('User ID and email are required.');
+      throw new Error('Email is required.');
+    }
+
+    // Find the user by email
+    const user = await findUserByEmail(email);
+    if (!user) {
+      res.status(404);
+      throw new Error('User not found.');
     }
 
     // Generate a 6-digit OTP code
     const otp = Math.floor(100000 + Math.random() * 900000).toString();
     const expiresAt = new Date(Date.now() + 24 * 60 * 60 * 1000); // otp expires in 24 hours
 
-    // Save the OTP in the EmailVerification model with updated fields
-    await db.emailVerification.create({
-      data: {
-        userId,
-        otp,
-        expiresAt,
-      },
-    });
+    await createEmailOTP(user.id, otp, expiresAt);
 
     // Send the verification email containing the OTP
     await transporter.sendMail({
@@ -383,6 +379,153 @@ router.get('/verify-email', async (req, res, next) => {
     next(err);
   }
 });
+
+
+/**
+ * @swagger
+ * /auth/forgot-password:
+ *   post:
+ *     summary: Request a password reset link
+ *     tags: [Auth]
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             required:
+ *               - email
+ *             properties:
+ *               email:
+ *                 type: string
+ *                 example: "test@example.com"
+ *     responses:
+ *       200:
+ *         description: Password reset email sent.
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 message:
+ *                   type: string
+ *                   example: "Password reset email sent"
+ *       400:
+ *         description: Email is required or user not found.
+ */
+router.post('/forgot-password', async (req, res, next) => {
+  try {
+    const { email } = req.body;
+    if (!email) {
+      res.status(400);
+      throw new Error('Email is required.');
+    }
+
+    const user = await findUserByEmail(email);
+    if (!user) {
+      res.status(404);
+      throw new Error('User not found.');
+    }
+
+    const resetToken = uuidv4();
+    const expiresAt = new Date(Date.now() + 1 * 60 * 60 * 1000); // Token expires in 1 hour
+
+    await db.passwordReset.create({
+      data: {
+        userId: user.id,
+        token: resetToken,
+        expiresAt,
+      },
+    });
+
+    const resetLink = `${process.env.FRONTEND_URL}/reset-password?token=${resetToken}`;
+
+    await transporter.sendMail({
+      from: process.env.GMAIL_USER,
+      to: email,
+      subject: 'Password Reset Request',
+      text: `Click the link to reset your password: ${resetLink}`,
+      html: `<p>Click the link to reset your password: <a href="${resetLink}">${resetLink}</a></p>`,
+    });
+
+    res.json({ status: 200, message: 'Password reset email sent' });
+  } catch (err) {
+    next(err);
+  }
+});
+
+/**
+ * @swagger
+ * /auth/reset-password:
+ *   post:
+ *     summary: Reset the user's password using a reset token
+ *     tags: [Auth]
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             required:
+ *               - token
+ *               - newPassword
+ *             properties:
+ *               token:
+ *                 type: string
+ *                 example: "reset-token"
+ *               newPassword:
+ *                 type: string
+ *                 example: "newpassword123"
+ *     responses:
+ *       200:
+ *         description: Password successfully reset.
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 message:
+ *                   type: string
+ *                   example: "Password successfully reset"
+ *       400:
+ *         description: Token is missing, invalid, or expired.
+ */
+router.post('/reset-password', async (req, res, next) => {
+  try {
+    const { token, newPassword } = req.body;
+    if (!token || !newPassword) {
+      res.status(400);
+      throw new Error('Token and new password are required.');
+    }
+
+    const resetRecord = await db.passwordReset.findFirst({
+      where: { token },
+    });
+
+    if (!resetRecord || resetRecord.expiresAt < new Date()) {
+      res.status(400);
+      throw new Error('Invalid or expired token.');
+    }
+
+    const hashedPassword = await bcrypt.hash(newPassword, 10);
+
+    await db.user.update({
+      where: { id: resetRecord.userId },
+      data: { password: hashedPassword },
+    });
+
+    await db.passwordReset.delete({
+      where: { id: resetRecord.id },
+    });
+
+    res.json({ status: 200, message: 'Password successfully reset' });
+  } catch (err) {
+    next(err);
+  }
+});
+
+
+
 
 module.exports = router;
 
