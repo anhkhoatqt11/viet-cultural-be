@@ -7,6 +7,7 @@ const {
   addRefreshTokenToWhitelist,
   findRefreshToken,
   deleteRefreshTokenById,
+  createEmailOTP,
   revokeTokens,
 } = require('./auth.services');
 
