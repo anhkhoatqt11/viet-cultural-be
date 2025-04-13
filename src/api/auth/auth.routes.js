@@ -300,6 +300,11 @@ router.post('/send-verification-email', async (req, res, next) => {
     const otp = Math.floor(100000 + Math.random() * 900000).toString();
     const expiresAt = new Date(Date.now() + 24 * 60 * 60 * 1000); // otp expires in 24 hours
 
+    // Delete any existing OTP for the user before creating a new one
+    await db.emailVerification.deleteMany({
+      where: { userId: user.id },
+    });
+
     // Save the OTP in the EmailVerification model with updated fields
     await db.emailVerification.create({
       data: {
