@@ -1,28 +1,34 @@
 const express = require('express');
 const router = express.Router();
 
-const { getGameDataByRegionAndType } = require('./game.services');
 
+const { getGameData } = require('./game.services');
 
 /**
  * @swagger
- * /game/get-gameData:
+ * /game/get-gamedata:
  *   post:
- *     summary: Retrieve game data by region and type
- *     tags: [Game]
+ *     summary: Retrieve game data based on region and game type
+ *     tags:
+ *       - Games
  *     parameters:
  *       - in: query
  *         name: regionId
- *         required: true
  *         schema:
- *           type: string
+ *           type: integer
+ *         required: true
  *         description: The ID of the region
  *       - in: query
  *         name: gameType
- *         required: true
  *         schema:
  *           type: string
- *         description: The type of the game
+ *           enum:
+ *             - word
+ *             - quiz
+ *             - puzzle
+ *             - treasure
+ *         required: true
+ *         description: The code of the game type
  *     responses:
  *       200:
  *         description: Successfully retrieved game data
@@ -30,23 +36,25 @@ const { getGameDataByRegionAndType } = require('./game.services');
  *           application/json:
  *             schema:
  *               type: object
- *               properties:
- *                 data:
- *                   type: array
- *                   items:
- *                     type: object
+ *               additionalProperties: true
  *       400:
- *         description: Bad request
+ *         description: Unsupported game type
+ *       404:
+ *         description: Game type not found
  *       500:
  *         description: Internal server error
  */
-router.post('/get-gameData', async (req, res, next) => {
+router.post('/get-gamedata', async (req, res, next) => {
     try {
         const { regionId, gameType } = req.query;
-        // Assuming you have a function to fetch game data by regionId and gameType
-        const gameData = await getGameDataByRegionAndType(Number(regionId), gameType);
-        res.json(gameData);
+
+        const data = await getGameData(regionId, gameType);
+
+        res.json(data);
     } catch (err) {
+        if (err.message === 'Game type not found' || err.message === 'Unsupported game type') {
+            return res.status(400).json({ message: err.message });
+        }
         next(err);
     }
 });
