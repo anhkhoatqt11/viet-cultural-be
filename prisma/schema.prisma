@@ -17,17 +17,51 @@ model Achievement {
 }
 
 model AfterQuestionInformation {
-  id             Int           @id @default(autoincrement())
-  images         Json
-  texts          Json
-  puzzleGameId   Int?
-  quizGameId     Int?
-  treasureGameId Int?
-  wordGameId     Int?
-  PuzzleGame     PuzzleGame?   @relation(fields: [puzzleGameId], references: [id])
-  QuizGame       QuizGame?     @relation(fields: [quizGameId], references: [id])
-  TreasureGame   TreasureGame? @relation(fields: [treasureGameId], references: [id])
-  WordGame       WordGame?     @relation(fields: [wordGameId], references: [id])
+  id        Int    @id @default(autoincrement())
+  topicName String
+
+  mediaLinks MediaLink[]
+  infoSlides InformationSlide[]
+
+  gameTypeId Int? @unique // This field is used to link to the specific game type
+
+  puzzleGameId   Int? @unique
+  quizGameId     Int? @unique
+  treasureGameId Int? @unique
+  wordGameId     Int? @unique
+
+  PuzzleGame   PuzzleGame?   @relation(fields: [puzzleGameId], references: [id])
+  QuizGame     QuizGame?     @relation(fields: [quizGameId], references: [id])
+  TreasureGame TreasureGame? @relation(fields: [treasureGameId], references: [id])
+  WordGame     WordGame?     @relation(fields: [wordGameId], references: [id])
+
+  // Optional: Add indexes for performance if you query by game IDs often
+  @@index([puzzleGameId])
+  @@index([quizGameId])
+  @@index([treasureGameId])
+  @@index([wordGameId])
+}
+
+model MediaLink {
+  id  Int      @id @default(autoincrement())
+  src String[]
+  alt String
+
+  afterQuestionInfoId      Int
+  AfterQuestionInformation AfterQuestionInformation @relation(fields: [afterQuestionInfoId], references: [id], onDelete: Cascade) // Cascade delete ensures links are removed if the parent info is deleted
+
+  @@index([afterQuestionInfoId])
+}
+
+model InformationSlide {
+  id      Int      @id @default(autoincrement())
+  heading String // Corresponds to "topic.slides[].heading"
+  content String[] // Corresponds to "topic.slides[].content" - Prisma natively supports string arrays
+
+  afterQuestionInfoId      Int
+  AfterQuestionInformation AfterQuestionInformation @relation(fields: [afterQuestionInfoId], references: [id], onDelete: Cascade) // Cascade delete ensures slides are removed if the parent info is deleted
+
+  @@index([afterQuestionInfoId])
 }
 
 model Comment {
@@ -68,7 +102,7 @@ model Post {
 model PuzzleGame {
   id                       Int                        @id @default(autoincrement())
   regionid                 Int?
-  gametype                 Int?
+  gametype                 Int?                       @default(1)
   imageurl                 String?
   AfterQuestionInformation AfterQuestionInformation[]
   game_type                game_type?                 @relation(fields: [gametype], references: [id], onDelete: Cascade)
@@ -91,7 +125,7 @@ model PuzzlePiece {
 model QuizGame {
   id                       Int                        @id @default(autoincrement())
   regionid                 Int?
-  gametype                 Int?
+  gametype                 Int?                       @default(4)
   title                    String
   description              String?
   AfterQuestionInformation AfterQuestionInformation[]
@@ -153,7 +187,7 @@ model TreasureCard {
 model TreasureGame {
   id                       Int                        @id @default(autoincrement())
   regionid                 Int?
-  gametype                 Int?
+  gametype                 Int?                       @default(2)
   title                    String?
   description              String?
   AfterQuestionInformation AfterQuestionInformation[]
@@ -185,7 +219,7 @@ model User {
 model WordGame {
   id                       Int                        @id @default(autoincrement())
   regionid                 Int?
-  gametype                 Int?
+  gametype                 Int?                       @default(3)
   question                 String
   hint                     String?
   answer                   String

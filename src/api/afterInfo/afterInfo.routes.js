@@ -13,17 +13,17 @@ const { getAfterInfo } = require('./afterInfo.services');
  *     summary: Retrieve afterInfo based on gameId and questionNumber
  *     parameters:
  *       - in: query
- *         name: gameId
- *         required: true
- *         schema:
- *           type: string
- *         description: The ID of the game
- *       - in: query
- *         name: questionNumber
+ *         name: gameTypeId
  *         required: true
  *         schema:
  *           type: integer
- *         description: The question number
+ *         description: The ID of the game type
+ *       - in: query
+ *         name: gameId
+ *         required: true
+ *         schema:
+ *           type: integer
+ *         description: The ID of the game
  *     responses:
  *       200:
  *         description: Successfully retrieved afterInfo
@@ -38,8 +38,8 @@ const { getAfterInfo } = require('./afterInfo.services');
  */
 router.post('/get-afterInfo', async (req, res, next) => {
     try {
-        const { gameId, questionNumber } = req.query;
-        const afterInfo = await getAfterInfo(Number(gameId), Number(questionNumber));
+        const { gameTypeId, gameId } = req.query;
+        const afterInfo = await getAfterInfo(gameTypeId, gameId);
         res.json(afterInfo);
     } catch (err) {
         next(err);
