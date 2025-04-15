@@ -4,20 +4,20 @@ async function getGameData(regionId, gameType) {
     const gameTypeData = await db.game_type.findUnique({
         where: { code: gameType },
         include: {
-            word_games: {
+            WordGame: { // Corrected relation name
                 where: { regionid: Number(regionId) },
             },
-            quiz_games: {
+            QuizGame: { // Corrected relation name
                 where: { regionid: Number(regionId) },
-                include: { questions: true },
+                include: { QuizGameQuestion: true }, // Corrected relation name
             },
-            puzzle_games: {
+            PuzzleGame: { // Corrected relation name
                 where: { regionid: Number(regionId) },
-                include: { pieces: true },
+                include: { PuzzlePiece: true }, // Corrected relation name
             },
-            treasure_games: {
+            TreasureGame: { // Corrected relation name
                 where: { regionid: Number(regionId) },
-                include: { cards: true },
+                include: { TreasureCard: true }, // Corrected relation name
             },
         },
     });
@@ -28,7 +28,7 @@ async function getGameData(regionId, gameType) {
 
     switch (gameTypeData.code) {
         case 'word':
-            return gameTypeData.word_games.map((game) => ({
+            return gameTypeData.WordGame.map((game) => ({
                 id: game.id,
                 question: game.question,
                 hint: game.hint,
@@ -39,8 +39,8 @@ async function getGameData(regionId, gameType) {
 
         case 'quiz':
             return {
-                question: gameTypeData.quiz_games.flatMap((game) =>
-                    game.questions.map((q) => ({
+                question: gameTypeData.QuizGame.flatMap((game) =>
+                    game.QuizGameQuestion.map((q) => ({
                         id: q.id,
                         question: q.question,
                         options: {
@@ -55,10 +55,10 @@ async function getGameData(regionId, gameType) {
             };
 
         case 'puzzle':
-            return gameTypeData.puzzle_games.map((game) => ({
+            return gameTypeData.PuzzleGame.map((game) => ({
                 id: game.id,
                 imageurl: game.imageurl,
-                pieces: game.pieces.map((piece) => ({
+                pieces: game.PuzzlePiece.map((piece) => ({
                     id: piece.id,
                     piece_index: piece.piece_index,
                     x_position: piece.x_position,
@@ -70,11 +70,11 @@ async function getGameData(regionId, gameType) {
             }));
 
         case 'treasure':
-            return gameTypeData.treasure_games.map((game) => ({
+            return gameTypeData.TreasureGame.map((game) => ({
                 id: game.id,
                 title: game.title,
                 description: game.description,
-                cardsData: game.cards.map((card) => ({
+                cardsData: game.TreasureCard.map((card) => ({
                     type: card.type,
                     value: card.value,
                     matchGroup: card.matchGroup,
