@@ -7,6 +7,7 @@ function addRefreshTokenToWhitelist({ refreshToken, userId }) {
     data: {
       hashedToken: hashToken(refreshToken),
       userId,
+      updatedAt: new Date(Date.now() + 1000 * 60 * 60 * 24 * 30), // 30 days
       expireAt: new Date(Date.now() + 1000 * 60 * 60 * 24 * 30), // 30 days
     },
   });

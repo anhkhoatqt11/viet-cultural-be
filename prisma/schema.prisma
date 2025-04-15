@@ -17,25 +17,20 @@ model Achievement {
 }
 
 model AfterQuestionInformation {
-  id        Int    @id @default(autoincrement())
-  topicName String
+  id             Int                @id @default(autoincrement())
+  puzzleGameId   Int?               @unique
+  quizGameId     Int?               @unique
+  treasureGameId Int?               @unique
+  wordGameId     Int?               @unique
+  topicName      String
+  gameTypeId     Int?               @unique
+  PuzzleGame     PuzzleGame?        @relation(fields: [puzzleGameId], references: [id])
+  QuizGame       QuizGame?          @relation(fields: [quizGameId], references: [id])
+  TreasureGame   TreasureGame?      @relation(fields: [treasureGameId], references: [id])
+  WordGame       WordGame?          @relation(fields: [wordGameId], references: [id])
+  infoSlides     InformationSlide[]
+  mediaLinks     MediaLink[]
 
-  mediaLinks MediaLink[]
-  infoSlides InformationSlide[]
-
-  gameTypeId Int? @unique // This field is used to link to the specific game type
-
-  puzzleGameId   Int? @unique
-  quizGameId     Int? @unique
-  treasureGameId Int? @unique
-  wordGameId     Int? @unique
-
-  PuzzleGame   PuzzleGame?   @relation(fields: [puzzleGameId], references: [id])
-  QuizGame     QuizGame?     @relation(fields: [quizGameId], references: [id])
-  TreasureGame TreasureGame? @relation(fields: [treasureGameId], references: [id])
-  WordGame     WordGame?     @relation(fields: [wordGameId], references: [id])
-
-  // Optional: Add indexes for performance if you query by game IDs often
   @@index([puzzleGameId])
   @@index([quizGameId])
   @@index([treasureGameId])
@@ -43,23 +38,21 @@ model AfterQuestionInformation {
 }
 
 model MediaLink {
-  id  Int      @id @default(autoincrement())
-  src String[]
-  alt String
-
+  id                       Int                      @id @default(autoincrement())
+  src                      String[]
+  alt                      String
   afterQuestionInfoId      Int
-  AfterQuestionInformation AfterQuestionInformation @relation(fields: [afterQuestionInfoId], references: [id], onDelete: Cascade) // Cascade delete ensures links are removed if the parent info is deleted
+  AfterQuestionInformation AfterQuestionInformation @relation(fields: [afterQuestionInfoId], references: [id], onDelete: Cascade)
 
   @@index([afterQuestionInfoId])
 }
 
 model InformationSlide {
-  id      Int      @id @default(autoincrement())
-  heading String // Corresponds to "topic.slides[].heading"
-  content String[] // Corresponds to "topic.slides[].content" - Prisma natively supports string arrays
-
+  id                       Int                      @id @default(autoincrement())
+  heading                  String
+  content                  String[]
   afterQuestionInfoId      Int
-  AfterQuestionInformation AfterQuestionInformation @relation(fields: [afterQuestionInfoId], references: [id], onDelete: Cascade) // Cascade delete ensures slides are removed if the parent info is deleted
+  AfterQuestionInformation AfterQuestionInformation @relation(fields: [afterQuestionInfoId], references: [id], onDelete: Cascade)
 
   @@index([afterQuestionInfoId])
 }
@@ -96,17 +89,17 @@ model Post {
   media    Json
   Comment  Comment[]
   User     User      @relation(fields: [userId], references: [id], onDelete: Cascade)
-  Tags     Tags[]
+  Tags     Tags[]    @relation("PostToTags")
 }
 
 model PuzzleGame {
-  id                       Int                        @id @default(autoincrement())
+  id                       Int                       @id @default(autoincrement())
   regionid                 Int?
-  gametype                 Int?                       @default(1)
+  gametype                 Int?                      @default(1)
   imageurl                 String?
-  AfterQuestionInformation AfterQuestionInformation[]
-  game_type                game_type?                 @relation(fields: [gametype], references: [id], onDelete: Cascade)
-  Region                   Region?                    @relation(fields: [regionid], references: [id], onDelete: Cascade)
+  AfterQuestionInformation AfterQuestionInformation?
+  game_type                game_type?                @relation(fields: [gametype], references: [id], onDelete: Cascade)
+  Region                   Region?                   @relation(fields: [regionid], references: [id], onDelete: Cascade)
   PuzzlePiece              PuzzlePiece[]
 }
 
@@ -123,14 +116,14 @@ model PuzzlePiece {
 }
 
 model QuizGame {
-  id                       Int                        @id @default(autoincrement())
+  id                       Int                       @id @default(autoincrement())
   regionid                 Int?
-  gametype                 Int?                       @default(4)
+  gametype                 Int?                      @default(4)
   title                    String
   description              String?
-  AfterQuestionInformation AfterQuestionInformation[]
-  game_type                game_type?                 @relation(fields: [gametype], references: [id], onDelete: Cascade)
-  Region                   Region?                    @relation(fields: [regionid], references: [id], onDelete: Cascade)
+  AfterQuestionInformation AfterQuestionInformation?
+  game_type                game_type?                @relation(fields: [gametype], references: [id], onDelete: Cascade)
+  Region                   Region?                   @relation(fields: [regionid], references: [id], onDelete: Cascade)
   QuizGameQuestion         QuizGameQuestion[]
 }
 
@@ -147,7 +140,7 @@ model QuizGameQuestion {
 }
 
 model RefreshToken {
-  id          String   @id
+  id          String   @id @unique @default(uuid())
   hashedToken String   @unique
   userId      Int
   revoked     Boolean  @default(false)
@@ -172,7 +165,7 @@ model Region {
 model Tags {
   id   Int    @id @default(autoincrement())
   name String @unique @db.VarChar(50)
-  Post Post[]
+  Post Post[] @relation("PostToTags")
 }
 
 model TreasureCard {
@@ -185,15 +178,15 @@ model TreasureCard {
 }
 
 model TreasureGame {
-  id                       Int                        @id @default(autoincrement())
+  id                       Int                       @id @default(autoincrement())
   regionid                 Int?
-  gametype                 Int?                       @default(2)
+  gametype                 Int?                      @default(2)
   title                    String?
   description              String?
-  AfterQuestionInformation AfterQuestionInformation[]
+  AfterQuestionInformation AfterQuestionInformation?
   TreasureCard             TreasureCard[]
-  game_type                game_type?                 @relation(fields: [gametype], references: [id], onDelete: Cascade)
-  Region                   Region?                    @relation(fields: [regionid], references: [id], onDelete: Cascade)
+  game_type                game_type?                @relation(fields: [gametype], references: [id], onDelete: Cascade)
+  Region                   Region?                   @relation(fields: [regionid], references: [id], onDelete: Cascade)
 }
 
 model User {
@@ -217,17 +210,17 @@ model User {
 }
 
 model WordGame {
-  id                       Int                        @id @default(autoincrement())
+  id                       Int                       @id @default(autoincrement())
   regionid                 Int?
-  gametype                 Int?                       @default(3)
+  gametype                 Int?                      @default(3)
   question                 String
   hint                     String?
   answer                   String
   correct_letters          String[]
   letters                  String[]
-  AfterQuestionInformation AfterQuestionInformation[]
-  game_type                game_type?                 @relation(fields: [gametype], references: [id], onDelete: Cascade)
-  Region                   Region?                    @relation(fields: [regionid], references: [id], onDelete: Cascade)
+  AfterQuestionInformation AfterQuestionInformation?
+  game_type                game_type?                @relation(fields: [gametype], references: [id], onDelete: Cascade)
+  Region                   Region?                   @relation(fields: [regionid], references: [id], onDelete: Cascade)
 }
 
 model comment_reaction {
