@@ -2,11 +2,11 @@ const {db} = require('../../../utils/db')
 
 class WordHandler {
     async getAll(){
-        return await db.wordGame.findMany()
+        return await db.word_games.findMany()
     }
 
     async getById(id){
-        return await db.wordGame.findUnique({
+        return await db.word_games.findUnique({
             where: {
                 id: id
             }
@@ -14,13 +14,13 @@ class WordHandler {
     }
 
     async create(data){
-        return await db.wordGame.create({
+        return await db.word_games.create({
             ...data
         })
     }
 
     async update(id, data){
-        return await db.wordGame.update({
+        return await db.word_games.update({
             where: {
                 id: id
             },
@@ -31,7 +31,7 @@ class WordHandler {
     }
 
     async delete(id){
-        return await db.wordGame.delete({
+        return await db.word_games.delete({
             where: {
                 id: id
             }

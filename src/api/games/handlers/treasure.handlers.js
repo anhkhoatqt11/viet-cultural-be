@@ -2,11 +2,11 @@ const {db} = require('../../../utils/db')
 
 class TreasureHandler {
     async getAll(){
-        return await db.treasureGame.findMany()
+        return await db.treasure_games.findMany()
     }
 
     async getById(id){
-        return await db.treasureGame.findUnique({
+        return await db.treasure_games.findUnique({
             where: {
                 id: id
             }
@@ -14,13 +14,13 @@ class TreasureHandler {
     }
 
     async create(data){
-        return await db.treasureGame.create({
+        return await db.treasure_games.create({
             ...data
         })
     }
 
     async update(id, data){
-        return await db.treasureGame.update({
+        return await db.treasure_games.update({
             where: {
                 id: id
             },
@@ -31,7 +31,7 @@ class TreasureHandler {
     }
 
     async delete(id){
-        return await db.treasureGame.delete({
+        return await db.treasure_games.delete({
             where: {
                 id: id
             }
@@ -41,7 +41,7 @@ class TreasureHandler {
 
 class TreasureCardHandler {
     async getAll(id){
-        return await db.treasureCard.findMany({
+        return await db.treasure_cards.findMany({
             where: {
                 treasureId: id
             }
@@ -49,7 +49,7 @@ class TreasureCardHandler {
     }
 
     async getById(id){
-        return await db.treasureCard.findUnique({
+        return await db.treasure_cards.findUnique({
             where: {
                 id: id
             }
@@ -57,13 +57,13 @@ class TreasureCardHandler {
     }
 
     async create(data){
-        return await db.treasureCard.create({
+        return await db.treasure_cards.create({
             ...data
         })
     }
 
     async update(id, data){
-        return await db.treasureCard.update({
+        return await db.treasure_cards.update({
             where: {
                 id: id
             },
@@ -74,7 +74,7 @@ class TreasureCardHandler {
     }
 
     async delete(id){
-        return await db.treasureCard.delete({
+        return await db.treasure_cards.delete({
             where: {
                 id: id
             }

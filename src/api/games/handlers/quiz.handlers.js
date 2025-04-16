@@ -2,11 +2,11 @@ const {db} = require('../../../utils/db')
 
 class QuizHandler {
     async getAll(){
-        return await db.quizGame.findMany()
+        return await db.quiz_games.findMany()
     }
 
     async getById(id){
-        return await db.quizGame.findUnique({
+        return await db.quiz_games.findUnique({
             where: {
                 id: id
             }
@@ -14,13 +14,13 @@ class QuizHandler {
     }
 
     async create(data){
-        return await db.quizGame.create({
+        return await db.quiz_games.create({
             ...data
         })
     }
 
     async update(id, data){
-        return await db.quizGame.update({
+        return await db.quiz_games.update({
             where: {
                 id: id
             },
@@ -31,7 +31,7 @@ class QuizHandler {
     }
 
     async delete(id){
-        return await db.quizGame.delete({
+        return await db.quiz_games.delete({
             where: {
                 id: id
             }
@@ -41,7 +41,7 @@ class QuizHandler {
 
 class QuizGameQuestionHandler {
     async getAll(id){
-        return await db.quizGameQuestion.findMany({
+        return await db.quiz_game_questions.findMany({
             where: {
                 quizId: id
             }
@@ -49,7 +49,7 @@ class QuizGameQuestionHandler {
     }
 
     async getById(id){
-        return await db.quizGameQuestion.findUnique({
+        return await db.quiz_game_questions.findUnique({
             where: {
                 id: id
             }
@@ -57,13 +57,13 @@ class QuizGameQuestionHandler {
     }
 
     async create(data){
-        return await db.quizGameQuestion.create({
+        return await db.quiz_game_questions.create({
             ...data
         })
     }
 
     async update(id, data){
-        return await db.quizGameQuestion.update({
+        return await db.quiz_game_questions.update({
             where: {
                 id: id
             },
@@ -74,7 +74,7 @@ class QuizGameQuestionHandler {
     }
 
     async delete(id){
-        return await db.quizGameQuestion.delete({
+        return await db.quiz_game_questions.delete({
             where: {
                 id: id
             }

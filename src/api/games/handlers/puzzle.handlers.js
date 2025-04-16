@@ -2,11 +2,11 @@ const {db} = require('../../../utils/db')
 
 class PuzzleHandler {
     async getAll(){
-        return await db.puzzleGame.findMany()
+        return await db.puzzle_games.findMany()
     }
 
     async getById(id){
-        return await db.puzzleGame.findUnique({
+        return await db.puzzle_games.findUnique({
             where: {
                 id: id
             }
@@ -14,13 +14,13 @@ class PuzzleHandler {
     }
 
     async create(data){
-        return await db.puzzleGame.create({
+        return await db.puzzle_games.create({
             ...data
         })
     }
 
     async update(id, data){
-        return await db.puzzleGame.update({
+        return await db.puzzle_games.update({
             where: {
                 id: id
             },
@@ -31,7 +31,7 @@ class PuzzleHandler {
     }
 
     async delete(id){
-        return await db.puzzleGame.delete({
+        return await db.puzzle_games.delete({
             where: {
                 id: id
             }
@@ -41,7 +41,7 @@ class PuzzleHandler {
 
 class PuzzlePieceHandler {
     async getAll(id){
-        return await db.puzzlePiece.findMany({
+        return await db.puzzle_pieces.findMany({
             where: {
                 puzzleId: id
             }
@@ -49,7 +49,7 @@ class PuzzlePieceHandler {
     }
 
     async getById(id){
-        return await db.puzzlePiece.findUnique({
+        return await db.puzzle_pieces.findUnique({
             where: {
                 id: id
             }
@@ -57,13 +57,13 @@ class PuzzlePieceHandler {
     }
 
     async create(data){
-        return await db.puzzlePiece.create({
+        return await db.puzzle_pieces.create({
             ...data
         })
     }
 
     async update(id, data){
-        return await db.puzzlePiece.update({
+        return await db.puzzle_pieces.update({
             where: {
                 id: id
             },
@@ -74,7 +74,7 @@ class PuzzlePieceHandler {
     }
 
     async delete(id){
-        return await db.puzzlePiece.delete({
+        return await db.puzzle_pieces.delete({
             where: {
                 id: id
             }
