@@ -3,6 +3,8 @@ const auth = require('./auth/auth.routes');
 const users = require('./user/user.routes');
 const region = require('./region/region.routes');
 const game = require('./game/game.routes');
+const games = require('./games/games.routes');
+const gamesDetails = require('./games/gamesDetails.routes');
 const afterInfo = require('./afterInfo/afterInfo.routes');
 const post = require('./post/post.routes');
 const assistance = require('./assistance/assistance.routes');
@@ -30,6 +32,10 @@ router.use('/post', post);
 router.use('/comment', comment);
 
 router.use('/assistance', assistance)
+
+router.use('/games', games);
+
+router.use('/games-details', gamesDetails);
 
 
 module.exports = router;
