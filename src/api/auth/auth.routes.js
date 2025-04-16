@@ -301,16 +301,16 @@ router.post('/send-verification-email', async (req, res, next) => {
     const expiresAt = new Date(Date.now() + 24 * 60 * 60 * 1000); // otp expires in 24 hours
 
     // Delete any existing OTP for the user before creating a new one
-    await db.emailVerification.deleteMany({
-      where: { userId: user.id },
+    await db.email_verifications.deleteMany({
+      where: { user_id_id: user.id },
     });
 
     // Save the OTP in the EmailVerification model with updated fields
-    await db.emailVerification.create({
+    await db.email_verifications.create({
       data: {
-        userId: user.id,
+        user_id_id: user.id,
         otp,
-        expiresAt,
+        expires_at: expiresAt,
       },
     });
 
@@ -366,23 +366,23 @@ router.get('/verify-email', async (req, res, next) => {
     }
 
     // Find the email verification record by otp
-    const record = await db.emailVerification.findFirst({
+    const record = await db.email_verifications.findFirst({
       where: { otp },
     });
 
-    if (!record || record.expiresAt < new Date()) {
+    if (!record || record.expires_at < new Date()) {
       res.status(400);
       throw new Error('Invalid or expired OTP.');
     }
 
     // Mark the user as verified. Assumes the users model has an 'isVerified' field.
     await db.user.update({
-      where: { id: record.userId },
-      data: { isVerified: true },
+      where: { id: record.user_id_id },
+      data: { is_verified: true },
     });
 
     // Delete the verification record after successful verification
-    await db.emailVerification.delete({
+    await db.email_verifications.delete({
       where: { id: record.id },
     });
 
