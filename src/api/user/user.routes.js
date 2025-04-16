@@ -1,6 +1,7 @@
 const express = require('express');
 const { isAuthenticated } = require('../../middlewares');
 const { findUserById } = require('./user.services');
+const jwt = require('jsonwebtoken');
 
 const router = express.Router();
 
@@ -25,9 +26,18 @@ const router = express.Router();
  *       401:
  *         description: Unauthorized
  */
-router.get('/profile', isAuthenticated, async (req, res, next) => {
+router.get('/profile', async (req, res, next) => {
   try {
-    const { userId } = req.payload;
+    // Assuming the token is stored in a cookie named 'token'
+    const token = req.cookies?.token;
+    if (!token) {
+      return res.status(401).json({ message: 'No token provided' });
+    }
+
+    // Decode the token to get userId (assuming JWT and userId is in payload)
+    const decoded = jwt.verify(token, process.env.JWT_ACCESS_SECRET);
+    const userId = decoded.userId;
+
     const user = await findUserById(userId);
     delete user.password;
     res.json(user);
