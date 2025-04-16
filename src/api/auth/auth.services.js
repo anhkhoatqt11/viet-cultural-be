@@ -3,28 +3,28 @@ const { hashToken } = require('../../utils/hash');
 
 // used when we create a refresh token.
 function addRefreshTokenToWhitelist({ refreshToken, userId }) {
-  return db.refreshToken.create({
+  return db.refresh_tokens.create({
     data: {
-      hashedToken: hashToken(refreshToken),
-      userId,
-      updatedAt: new Date(Date.now() + 1000 * 60 * 60 * 24 * 30), // 30 days
-      expireAt: new Date(Date.now() + 1000 * 60 * 60 * 24 * 30), // 30 days
+      hashed_token: hashToken(refreshToken),
+      user_id_id: userId,
+      updated_at: new Date(Date.now() + 1000 * 60 * 60 * 24 * 30), // 30 days
+      expire_at: new Date(Date.now() + 1000 * 60 * 60 * 24 * 30), // 30 days
     },
   });
 }
 
 // used to check if the token sent by the client is in the database.
 function findRefreshToken(token) {
-  return db.refreshToken.findUnique({
+  return db.refresh_tokens.findUnique({
     where: {
-      hashedToken: hashToken(token),
+      hashed_token: hashToken(token),
     },
   });
 }
 
 // soft delete tokens after usage.
 function deleteRefreshTokenById(id) {
-  return db.refreshToken.update({
+  return db.refresh_tokens.update({
     where: {
       id,
     },
@@ -35,7 +35,7 @@ function deleteRefreshTokenById(id) {
 }
 
 function revokeTokens(userId) {
-  return db.refreshToken.updateMany({
+  return db.refresh_tokens.updateMany({
     where: {
       userId,
     },

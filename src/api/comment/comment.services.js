@@ -1,7 +1,7 @@
 const { db } = require('../../utils/db')
 
-const Comment = db.comment
-const CommentReaction = db.comment_reaction
+const Comment = db.comments
+const CommentReaction = db.comment_reactions
 
 const createComment = async (commentData) => {
     return await Comment.create({

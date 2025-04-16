@@ -1,34 +1,34 @@
 const { db } = require('../../utils/db');
 
 function createRegion(region) {
-    return db.region.create({
+    return db.regions.create({
         data: region,
     });
 }
 async function findRegionById(id) {
-    const region = await db.region.findUnique({
+    const region = await db.regions.findUnique({
         where: {
             id: id,
         },
         include: {
-            PuzzleGame: {
+            puzzle_games: {
                 select: {
-                    gametype: true,
+                    gametype_id: true,
                 },
             },
-            QuizGame: {
+            quiz_games: {
                 select: {
-                    gametype: true,
+                    gametype_id: true,
                 },
             },
-            TreasureGame: {
+            treasure_games: {
                 select: {
-                    gametype: true,
+                    gametype_id: true,
                 },
             },
-            WordGame: {
+            word_games: {
                 select: {
-                    gametype: true,
+                    gametype_id: true,
                 },
             },
         },
@@ -36,10 +36,10 @@ async function findRegionById(id) {
 
     if (region) {
         const gameTypeIds = [
-            ...region.PuzzleGame.map(game => game.gametype),
-            ...region.QuizGame.map(game => game.gametype),
-            ...region.TreasureGame.map(game => game.gametype),
-            ...region.WordGame.map(game => game.gametype),
+            ...region.puzzle_games.map(game => game.gametype_id),
+            ...region.quiz_games.map(game => game.gametype_id),
+            ...region.treasure_games.map(game => game.gametype_id),
+            ...region.word_games.map(game => game.gametype_id),
         ];
         return {
             ...region,
@@ -50,7 +50,7 @@ async function findRegionById(id) {
 }
 
 function editRegionById(id, region) {
-    return db.region.update({
+    return db.regions.update({
         where: {
             id,
         },
@@ -59,7 +59,7 @@ function editRegionById(id, region) {
 }
 
 function deleteRegionById(id) {
-    return db.region.delete({
+    return db.regions.delete({
         where: {
             id,
         },

@@ -1,7 +1,7 @@
 const { db } = require('../../utils/db');
 
 async function getGameData(regionId, gameType) {
-    const gameTypeData = await db.game_type.findUnique({
+    const gameTypeData = await db.game_types.findUnique({
         where: { code: gameType },
         include: {
             WordGame: { // Corrected relation name

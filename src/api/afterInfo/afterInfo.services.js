@@ -2,24 +2,24 @@ const { db } = require('../../utils/db');
 
 
 async function getAfterInfo(gameTypeId, gameId) {
-    const info = await db.afterQuestionInformation.findFirst({
+    const info = await db.after_question_info.findFirst({
         where: {
-            gameTypeId: parseInt(gameTypeId, 10),
+            game_type_id_id: parseInt(gameTypeId, 10),
             OR: [
-                { puzzleGameId: parseInt(gameId, 10) },
-                { quizGameId: parseInt(gameId, 10) },
-                { treasureGameId: parseInt(gameId, 10) },
-                { wordGameId: parseInt(gameId, 10) },
+                { puzzle_game_id_id: parseInt(gameId, 10) },
+                { quiz_game_id_id: parseInt(gameId, 10) },
+                { treasure_game_id_id: parseInt(gameId, 10) },
+                { word_game_id_id: parseInt(gameId, 10) },
             ],
         },
         include: {
-            mediaLinks: {
+            media_links: {
                 select: {
                     src: true,
                     alt: true,
                 },
             },
-            infoSlides: {
+            information_slides: {
                 select: {
                     heading: true,
                     content: true,
@@ -34,9 +34,9 @@ async function getAfterInfo(gameTypeId, gameId) {
 
     const formattedOutput = {
         topic: {
-            name: info.topicName,
-            link: info.mediaLinks,
-            slides: info.infoSlides,
+            name: info.topic_name,
+            link: info.media_links,
+            slides: info.information_slides,
         },
     };
 
