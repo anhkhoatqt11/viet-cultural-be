@@ -4,20 +4,20 @@ async function getGameData(regionId, gameType) {
     const gameTypeData = await db.game_types.findUnique({
         where: { code: gameType },
         include: {
-            WordGame: { // Corrected relation name
-                where: { regionid: Number(regionId) },
+            word_games: { // Corrected relation name
+                where: { region_id: Number(regionId) },
             },
-            QuizGame: { // Corrected relation name
-                where: { regionid: Number(regionId) },
-                include: { QuizGameQuestion: true }, // Corrected relation name
+            quiz_games: { // Corrected relation name
+                where: { regionid_id: Number(regionId) },
+                include: { quiz_game_questions: true }, // Corrected relation name
             },
-            PuzzleGame: { // Corrected relation name
-                where: { regionid: Number(regionId) },
-                include: { PuzzlePiece: true }, // Corrected relation name
+            puzzle_games: { // Corrected relation name
+                where: { regionid_id: Number(regionId) },
+                include: { puzzle_pieces: true }, // Corrected relation name
             },
-            TreasureGame: { // Corrected relation name
-                where: { regionid: Number(regionId) },
-                include: { TreasureCard: true }, // Corrected relation name
+            treasure_games: { // Corrected relation name
+                where: { region_id: Number(regionId) },
+                include: { treasure_cards: true }, // Corrected relation name
             },
         },
     });
