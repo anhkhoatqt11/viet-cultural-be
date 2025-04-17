@@ -30,7 +30,7 @@ app.use(
 );
 const corsOptions = {
   origin: ['http://localhost:5173'],
-  method: ['GET', 'POST', 'PUT', 'DELETE', 'PATCH'],
+  methods: ['GET', 'POST', 'PUT', 'DELETE', 'PATCH'],
   allowedHeaders: ['Content-Type', 'Authorization', 'Origin', 'X-Requested-With', 'Accept'],
   credentials: true,            //access-control-allow-credentials:true
   optionSuccessStatus: 200,

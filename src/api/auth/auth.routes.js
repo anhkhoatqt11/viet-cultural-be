@@ -394,5 +394,32 @@ router.get('/verify-email', async (req, res, next) => {
   }
 });
 
+/**
+ * @swagger
+ * /auth/logout:
+ *   post:
+ *     summary: Logout user and clear tokens
+ *     tags: [Auth]
+ *     responses:
+ *       200:
+ *         description: Successfully logged out
+ */
+router.post('/logout', async (req, res, next) => {
+  try {
+    const refreshToken = req.cookies.refreshToken;
+    if (refreshToken) {
+      const tokenRecord = await findRefreshToken(refreshToken);
+      if (tokenRecord) {
+        await deleteRefreshTokenById(tokenRecord.id);
+      }
+    }
+    res.clearCookie('token', { httpOnly: true, secure: true, sameSite: 'None' });
+    res.clearCookie('refreshToken', { httpOnly: true, secure: true, sameSite: 'None' });
+    res.json({ status: 200, message: 'Successfully logged out' });
+  } catch (err) {
+    next(err);
+  }
+});
+
 module.exports = router;
 
