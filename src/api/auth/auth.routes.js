@@ -92,7 +92,8 @@ router.post('/register', async (req, res, next) => {
     res.cookie("refreshToken", refreshToken, {
       httpOnly: true,
       // secure: process.env.NODE_ENV === "development",
-      sameSite: "Strict",
+      secure: !isDev,                       // Localhost thì false, Production thì true
+  sameSite: isDev ? "Lax" : "None",      // Localhost thì "Lax", Production thì "None"
       maxAge: 7 * 24 * 60 * 60 * 1000,
     });
 
@@ -228,7 +229,8 @@ router.post('/refresh-token', async (req, res, next) => {
     res.cookie("refreshToken", newRefreshToken, {
       httpOnly: true,
       // secure: process.env.NODE_ENV === "development",
-      sameSite: "Strict",
+      sameSite: "Strict",secure: !isDev,                       // Localhost thì false, Production thì true
+  sameSite: isDev ? "Lax" : "None",      // Localhost thì "Lax", Production thì "None"
       maxAge: 7 * 24 * 60 * 60 * 1000,
     });
 
