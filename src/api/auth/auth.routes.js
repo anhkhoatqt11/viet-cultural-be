@@ -213,7 +213,7 @@ router.post('/refresh-token', async (req, res, next) => {
       throw new Error('Invalid refresh token.');
     }
 
-    const user = await findUserById(tokenRecord.userId);
+    const user = await findUserById(tokenRecord.user_id_id);
     if (!user) {
       res.status(403);
       throw new Error('User not found.');

@@ -37,7 +37,7 @@ function deleteRefreshTokenById(id) {
 function revokeTokens(userId) {
   return db.refresh_tokens.updateMany({
     where: {
-      userId,
+      user_id_id: userId,
     },
     data: {
       revoked: true,
