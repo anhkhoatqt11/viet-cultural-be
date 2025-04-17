@@ -281,7 +281,7 @@ model email_verifications {
 
 model game_types {
   id                            Int                             @id @default(autoincrement())
-  code                          enum_game_types_code
+  code                          enum_game_types_code            @unique(map: "game_types_code_idx")
   name                          String                          @db.VarChar
   updated_at                    DateTime                        @default(now()) @db.Timestamptz(3)
   created_at                    DateTime                        @default(now()) @db.Timestamptz(3)

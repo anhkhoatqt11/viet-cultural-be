@@ -28,7 +28,7 @@ async function getGameData(regionId, gameType) {
 
     switch (gameTypeData.code) {
         case 'word':
-            return gameTypeData.WordGame.map((game) => ({
+            return gameTypeData.word_games.map((game) => ({
                 id: game.id,
                 question: game.question,
                 hint: game.hint,
@@ -39,8 +39,8 @@ async function getGameData(regionId, gameType) {
 
         case 'quiz':
             return {
-                question: gameTypeData.QuizGame.flatMap((game) =>
-                    game.QuizGameQuestion.map((q) => ({
+                question: gameTypeData.quiz_games.flatMap((game) =>
+                    game.quiz_game_questions.map((q) => ({
                         id: q.id,
                         question: q.question,
                         options: {
@@ -55,10 +55,10 @@ async function getGameData(regionId, gameType) {
             };
 
         case 'puzzle':
-            return gameTypeData.PuzzleGame.map((game) => ({
+            return gameTypeData.puzzle_games.map((game) => ({
                 id: game.id,
                 imageurl: game.imageurl,
-                pieces: game.PuzzlePiece.map((piece) => ({
+                pieces: game.puzzle_pieces.map((piece) => ({
                     id: piece.id,
                     piece_index: piece.piece_index,
                     x_position: piece.x_position,
@@ -70,11 +70,11 @@ async function getGameData(regionId, gameType) {
             }));
 
         case 'treasure':
-            return gameTypeData.TreasureGame.map((game) => ({
+            return gameTypeData.treasure_games.map((game) => ({
                 id: game.id,
                 title: game.title,
                 description: game.description,
-                cardsData: game.TreasureCard.map((card) => ({
+                cardsData: game.treasure_cards.map((card) => ({
                     type: card.type,
                     value: card.value,
                     matchGroup: card.matchGroup,
