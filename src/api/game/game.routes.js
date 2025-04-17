@@ -7,7 +7,7 @@ const { getGameData } = require('./game.services');
 /**
  * @swagger
  * /game/get-gamedata:
- *   post:
+ *   get:
  *     summary: Retrieve game data based on region and game type
  *     tags:
  *       - Games
@@ -44,7 +44,7 @@ const { getGameData } = require('./game.services');
  *       500:
  *         description: Internal server error
  */
-router.post('/get-gamedata', async (req, res, next) => {
+router.get('/get-gamedata', async (req, res, next) => {
     try {
         const { regionId, gameType } = req.query;
 
