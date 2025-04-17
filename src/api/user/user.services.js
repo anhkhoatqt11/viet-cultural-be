@@ -24,9 +24,20 @@ function findUserById(id) {
   });
 }
 
+function updateUserById(userId, updateData) {
+  return db.user.update({
+    where: {
+      id: userId,
+    },
+    data: updateData,
+  });
+}
+
+
 
 module.exports = {
   findUserByEmail,
   findUserById,
   createUserByEmailAndPassword,
+  updateUserById,
 };
