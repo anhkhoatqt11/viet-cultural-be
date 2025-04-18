@@ -421,5 +421,152 @@ router.post('/logout', async (req, res, next) => {
   }
 });
 
+
+/**
+ * @swagger
+ * /auth/forgot-password:
+ *   post:
+ *     summary: Request password reset by sending OTP to email
+ *     tags: [Auth]
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             required:
+ *               - email
+ *             properties:
+ *               email:
+ *                 type: string
+ *                 example: "user@example.com"
+ *     responses:
+ *       200:
+ *         description: Password reset OTP sent successfully
+ *       400:
+ *         description: Email is required
+ *       404:
+ *         description: User not found
+ */
+router.post('/forgot-password', async (req, res, next) => {
+  try {
+    const { email } = req.body;
+    if (!email) {
+      res.status(400);
+      throw new Error('Email is required.');
+    }
+
+    const user = await findUserByEmail(email);
+    if (!user) {
+      res.status(404);
+      throw new Error('User not found.');
+    }
+
+    // Generate a 6-digit OTP code
+    const otp = Math.floor(100000 + Math.random() * 900000).toString();
+    const expiresAt = new Date(Date.now() + 1 * 60 * 60 * 1000); // OTP expires in 1 hour
+
+    // Delete any existing reset OTPs for the user
+    await db.password_resets.deleteMany({
+      where: { user_id_id: user.id },
+    });
+
+    // Save the OTP in the password_resets table
+    await db.password_resets.create({
+      data: {
+        user_id_id: user.id,
+        otp,
+        expires_at: expiresAt,
+      },
+    });
+
+    // Send the password reset email containing the OTP
+    await transporter.sendMail({
+      from: process.env.GMAIL_USER,
+      to: email,
+      subject: 'Password Reset - Your OTP Code',
+      text: `Your password reset OTP code is: ${otp}. This code will expire in 1 hour.`,
+      html: `<p>Your password reset OTP code is: <strong>${otp}</strong>.</p><p>This code will expire in 1 hour.</p>`,
+    });
+
+    res.json({ status: 200, message: 'Password reset OTP sent to your email' });
+  } catch (err) {
+    next(err);
+  }
+});
+
+/**
+ * @swagger
+ * /auth/reset-password:
+ *   post:
+ *     summary: Reset password using OTP and new password
+ *     tags: [Auth]
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             required:
+ *               - otp
+ *               - newPassword
+ *             properties:
+ *               otp:
+ *                 type: string
+ *                 example: "123456"
+ *               newPassword:
+ *                 type: string
+ *                 example: "newSecurePassword123"
+ *     responses:
+ *       200:
+ *         description: Password reset successful
+ *       400:
+ *         description: Invalid or missing parameters
+ *       404:
+ *         description: Invalid or expired OTP
+ */
+router.post('/reset-password', async (req, res, next) => {
+  try {
+    const { otp, newPassword } = req.body;
+    if (!otp || !newPassword) {
+      res.status(400);
+      throw new Error('OTP and new password are required.');
+    }
+
+    // Find the password reset record by OTP
+    const resetRecord = await db.password_resets.findFirst({
+      where: { otp },
+    });
+
+    if (!resetRecord || resetRecord.expires_at < new Date()) {
+      res.status(404);
+      throw new Error('Invalid or expired OTP.');
+    }
+
+    // Hash the new password
+    const hashedPassword = await bcrypt.hash(newPassword, 10);
+
+    // Update the user's password
+    await db.user.update({
+      where: { id: resetRecord.user_id_id },
+      data: { password: hashedPassword },
+    });
+
+    // Delete the reset record after successful password change
+    await db.password_resets.delete({
+      where: { id: resetRecord.id },
+    });
+
+    // Revoke all refresh tokens for this user as a security measure
+    await revokeTokens(resetRecord.user_id_id);
+
+    res.json({ status: 200, message: 'Password has been reset successfully' });
+  } catch (err) {
+    next(err);
+  }
+});
+
+
+
 module.exports = router;
 

@@ -2,6 +2,7 @@ const express = require('express');
 const { isAuthenticated } = require('../../middlewares');
 const { findUserById, updateUserById } = require('./user.services');
 const jwt = require('jsonwebtoken');
+const bcrypt = require('bcrypt');
 
 const router = express.Router();
 
@@ -125,5 +126,79 @@ router.put('/update-profile', async (req, res, next) => {
     next(err);
   }
 });
+
+/**
+ * @swagger
+ * /users/update-password:
+ *   put:
+ *     summary: Update user password
+ *     tags: [User]
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             properties:
+ *               oldPassword:
+ *                 type: string
+ *                 required: true
+ *               newPassword:
+ *                 type: string
+ *                 required: true
+ *     responses:
+ *       200:
+ *         description: Password updated successfully
+ *       401:
+ *         description: Unauthorized or incorrect old password
+ *       400:
+ *         description: Bad request
+ */
+router.put('/update-password', async (req, res, next) => {
+  try {
+    // Get token from cookies
+    const token = req.cookies?.token;
+    if (!token) {
+      return res.status(401).json({ message: 'No token provided' });
+    }
+
+    // Verify token and get userId
+    const decoded = jwt.verify(token, process.env.JWT_ACCESS_SECRET);
+    const userId = decoded.userId;
+
+    // Get old and new passwords from request body
+    const { oldPassword, newPassword } = req.body;
+    
+    if (!oldPassword || !newPassword) {
+      return res.status(400).json({ message: 'Old password and new password are required' });
+    }
+
+    // Get user to verify old password
+    const user = await findUserById(userId);
+    
+    // Import bcrypt or your authentication method here
+    
+    // Verify old password
+    const isPasswordValid = await bcrypt.compare(oldPassword, user.password);
+    if (!isPasswordValid) {
+      return res.status(401).json({ message: 'Incorrect old password' });
+    }
+
+    // Hash the new password
+    const hashedPassword = await bcrypt.hash(newPassword, 10);
+    
+    // Update the password
+    await updateUserById(userId, {
+      password: hashedPassword,
+      updated_at: new Date()
+    });
+
+    res.json({ message: 'Password updated successfully' });
+  } catch (err) {
+    next(err);
+  }
+});
+
+
 
 module.exports = router;
