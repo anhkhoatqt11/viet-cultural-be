@@ -1,6 +1,5 @@
 const { db } = require('../../utils/db');
 
-
 async function getAfterInfo(gameTypeId, gameId) {
     const info = await db.after_question_info.findFirst({
         where: {
@@ -15,14 +14,29 @@ async function getAfterInfo(gameTypeId, gameId) {
         include: {
             media_links: {
                 select: {
-                    src: true,
                     alt: true,
+                    media_links_src: {
+                        select: {
+                            id: true,
+                            url: true,
+                            order: true,
+                        },
+                    },
                 },
             },
             information_slides: {
                 select: {
                     heading: true,
-                    content: true,
+                    information_slides_content: {
+                        select: {
+                            id: true,
+                            order: true,
+                            paragraph: true,
+                        },
+                        orderBy: {
+                            order: 'asc',
+                        },
+                    },
                 },
             },
         },
@@ -42,7 +56,6 @@ async function getAfterInfo(gameTypeId, gameId) {
 
     return formattedOutput;
 }
-
 
 module.exports = {
     getAfterInfo,

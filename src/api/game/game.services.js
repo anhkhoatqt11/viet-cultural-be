@@ -44,12 +44,12 @@ async function getGameData(regionId, gameType) {
                         id: q.id,
                         question: q.question,
                         options: {
-                            A: q.optionA,
-                            B: q.optionB,
-                            C: q.optionC,
-                            ...(q.optionD && { D: q.optionD }),
+                            A: q.option_a,
+                            B: q.option_b,
+                            C: q.option_c,
+                            ...(q.option_d && { D: q.option_d }),
                         },
-                        correctAnswer: q.correctAnswer,
+                        correctAnswer: q.correct_answer,
                     }))
                 ),
             };
@@ -77,7 +77,7 @@ async function getGameData(regionId, gameType) {
                 cardsData: game.treasure_cards.map((card) => ({
                     type: card.type,
                     value: card.value,
-                    matchGroup: card.matchGroup,
+                    matchGroup: card.match_group,
                 })),
             }));
 
