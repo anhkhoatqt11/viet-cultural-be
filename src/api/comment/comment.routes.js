@@ -1,15 +1,14 @@
-
 const express = require('express');
 const router = express.Router();
-const { 
-    createComment, 
-    getCommentById, 
-    updateComment, 
-    deleteComment, 
+const {
+    createComment,
+    getCommentById,
+    updateComment,
+    deleteComment,
     likeComment,
-    dislikeComment
+    dislikeComment,
+    getCommentsByPostId
 } = require('./comment.services');
-
 
 /**
  * @swagger
@@ -31,10 +30,13 @@ const {
  *               userId:
  *                 type: number
  *                 description: The author of the comment
- *               postId: 
- *                  type: number 
+ *               postId:
+ *                  type: number
  *                  description: The post that be commented on
- *             required: 
+ *               parentId:
+ *                  type: number
+ *                  description: The parent comment id (for replies)
+ *             required:
  *                  - content
  *                  - userId
  *                  - postId
@@ -61,8 +63,7 @@ router.post('/create-comment', async (req, res) => {
         console.error('Error creating comment:', error);
         res.status(500).json({ error: 'Internal server error' });
     }
-})
-
+});
 
 /**
  * @swagger
@@ -90,7 +91,6 @@ router.post('/create-comment', async (req, res) => {
  *       500:
  *         description: Internal server error
  */
-
 router.get('/:id', async (req, res) => {
     try {
         const commentId = req.params.id;
@@ -103,7 +103,7 @@ router.get('/:id', async (req, res) => {
         console.error('Error fetching comment:', error);
         res.status(500).json({ error: 'Internal server error' });
     }
-})
+});
 
 /**
  * @swagger
@@ -141,7 +141,6 @@ router.get('/:id', async (req, res) => {
  *       500:
  *         description: Internal server error
  */
-
 router.patch('/update-comment/:id', async (req, res) => {
     try {
         const commentId = req.params.id;
@@ -155,8 +154,7 @@ router.patch('/update-comment/:id', async (req, res) => {
         console.error('Error updating comment:', error);
         res.status(500).json({ error: 'Internal server error' });
     }
-})
-
+});
 
 /**
  * @swagger
@@ -196,7 +194,7 @@ router.delete('/delete-comment/:id', async (req, res) => {
         console.error('Error deleting comment:', error);
         res.status(500).json({ error: 'Internal server error' });
     }
-})
+});
 
 /**
  * @swagger
@@ -232,20 +230,16 @@ router.delete('/delete-comment/:id', async (req, res) => {
  *       500:
  *         description: Internal server error
  */
-
 router.post('/like-comment/:id', async (req, res, next) => {
     try {
-        const {userId} = req.body
+        const { userId } = req.body;
         const commentId = req.params.id;
         const result = await likeComment(commentId, userId);
-        console.log(result);
-        
         res.status(200).json(result);
     } catch (error) {
         next(error);
     }
-})
-
+});
 
 /**
  * @swagger
@@ -281,19 +275,57 @@ router.post('/like-comment/:id', async (req, res, next) => {
  *       500:
  *         description: Internal server error
  */
-
 router.post('/dislike-comment/:id', async (req, res, next) => {
     try {
-        const {userId} = req.body
-        const commentId = req.params.id
-        const result = await dislikeComment(commentId, userId)
-
-        res.status(200).json(result)
+        const { userId } = req.body;
+        const commentId = req.params.id;
+        const result = await dislikeComment(commentId, userId);
+        res.status(200).json(result);
     } catch (error) {
-        next(error)
+        next(error);
     }
-})
+});
 
+
+/**
+ * @swagger
+ * /comment/post/{postId}:
+ *   get:
+ *     tags: [Comment]
+ *     summary: Get all comments for a post
+ *     description: Retrieve all comments for a specific post, including replies
+ *     parameters:
+ *       - in: path
+ *         name: postId
+ *         required: true
+ *         schema:
+ *           type: string
+ *         description: The ID of the post
+ *     responses:
+ *       200:
+ *         description: Successfully retrieved the comments
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: array
+ *               items:
+ *                 type: object
+ *       404:
+ *         description: Post not found or has no comments
+ *       500:
+ *         description: Internal server error
+ */
+router.get('/post/:postId', async (req, res) => {
+    try {
+        const postId = req.params.postId;
+        const comments = await getCommentsByPostId(postId);
+        
+        res.status(200).json(comments);
+    } catch (error) {
+        console.error('Error fetching comments for post:', error);
+        res.status(500).json({ error: 'Internal server error' });
+    }
+});
 
 
 module.exports = router;
