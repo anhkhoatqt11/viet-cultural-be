@@ -11,22 +11,36 @@ function createPost(post) {
 async function getPostById(id) {
     const post = await db.posts.findUnique({
         where: { id },
-        include: { media: true },
+        include: { 
+            media: true,
+            user: true 
+        },
     });
     if (!post) return null;
     return {
         ...post,
         imageUrl: post.media && post.media.key ? `${IMAGE_BASE_URL}${post.media.key}` : null,
+        user: post.user ? {
+            ...post.user,
+            avatarUrl: post.user.avatar ? `${IMAGE_BASE_URL}${post.user.avatar}` : null
+        } : null
     };
 }
 
 async function getAllPosts() {
     const posts = await db.posts.findMany({
-        include: { media: true },
+        include: { 
+            media: true,
+            user: true 
+        },
     });
     return posts.map(post => ({
         ...post,
         imageUrl: post.media && post.media.key ? `${IMAGE_BASE_URL}${post.media.key}` : null,
+        user: post.user ? {
+            ...post.user,
+            avatarUrl: post.user.avatar ? `${IMAGE_BASE_URL}${post.user.avatar}` : null
+        } : null
     }));
 }
 
@@ -38,7 +52,10 @@ async function commentPost(postId, comment) {
         },
         include: {
             posts: {
-                include: { media: true },
+                include: { 
+                    media: true,
+                    user: true 
+                },
             },
         },
     });
@@ -49,6 +66,10 @@ async function commentPost(postId, comment) {
         ? {
             ...post,
             imageUrl: post.media && post.media.key ? `${IMAGE_BASE_URL}${post.media.key}` : null,
+            user: post.user ? {
+                ...post.user,
+                avatarUrl: post.user.avatar ? `${IMAGE_BASE_URL}${post.user.avatar}` : null
+            } : null
         }
         : null;
 
