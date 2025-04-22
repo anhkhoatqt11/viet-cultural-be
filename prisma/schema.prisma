@@ -10,6 +10,7 @@ datasource db {
 model media {
   id                            Int                             @id @default(autoincrement())
   alt                           String                          @db.VarChar
+  key                           String?                         @map("_key") @db.VarChar
   updated_at                    DateTime                        @default(now()) @db.Timestamptz(3)
   created_at                    DateTime                        @default(now()) @db.Timestamptz(3)
   url                           String?                         @db.VarChar
@@ -21,7 +22,12 @@ model media {
   height                        Decimal?                        @db.Decimal
   focal_x                       Decimal?                        @db.Decimal
   focal_y                       Decimal?                        @db.Decimal
+  media_links_rels              media_links_rels[]
   payload_locked_documents_rels payload_locked_documents_rels[]
+  posts                         posts[]
+  puzzle_games                  puzzle_games[]
+  puzzle_pieces                 puzzle_pieces[]
+  treasure_cards                treasure_cards[]
 
   @@index([created_at])
   @@index([updated_at])
@@ -329,23 +335,12 @@ model media_links {
   updated_at                    DateTime                        @default(now()) @db.Timestamptz(3)
   created_at                    DateTime                        @default(now()) @db.Timestamptz(3)
   after_question_info           after_question_info?            @relation(fields: [after_question_info_id_id], references: [id], onUpdate: NoAction, map: "media_links_after_question_info_id_id_after_question_info_id_fk")
-  media_links_src               media_links_src[]
+  media_links_rels              media_links_rels[]
   payload_locked_documents_rels payload_locked_documents_rels[]
 
   @@index([after_question_info_id_id], map: "media_links_after_question_info_id_idx")
   @@index([created_at])
   @@index([updated_at])
-}
-
-model media_links_src {
-  order       Int         @map("_order")
-  parent_id   Int         @map("_parent_id")
-  id          String      @id @db.VarChar
-  url         String?     @db.VarChar
-  media_links media_links @relation(fields: [parent_id], references: [id], onDelete: Cascade, onUpdate: NoAction, map: "media_links_src_parent_id_fk")
-
-  @@index([order], map: "media_links_src_order_idx")
-  @@index([parent_id], map: "media_links_src_parent_id_idx")
 }
 
 model password_resets {
@@ -368,17 +363,19 @@ model posts {
   user_id_id                    Int?
   title                         String?                         @db.VarChar
   question                      String?                         @db.VarChar
-  media                         Json?
+  image_id                      Int?
   updated_at                    DateTime                        @default(now()) @db.Timestamptz(3)
   created_at                    DateTime                        @default(now()) @db.Timestamptz(3)
   comments                      comments[]
   payload_locked_documents_rels payload_locked_documents_rels[]
+  media                         media?                          @relation(fields: [image_id], references: [id], onUpdate: NoAction, map: "posts_image_id_media_id_fk")
   user                          user?                           @relation(fields: [user_id_id], references: [id], onUpdate: NoAction, map: "posts_user_id_id_user_id_fk")
   posts_rels                    posts_rels[]
 
   @@index([created_at])
   @@index([updated_at])
   @@index([user_id_id], map: "posts_user_id_idx")
+  @@index([image_id], map: "posts_image_idx")
 }
 
 model posts_rels {
@@ -400,38 +397,40 @@ model puzzle_games {
   id                            Int                             @id @default(autoincrement())
   regionid_id                   Int?
   gametype_id                   Int?
-  imageurl                      String?                         @db.VarChar
+  hint                          String?                         @db.VarChar
+  image_id                      Int
   updated_at                    DateTime                        @default(now()) @db.Timestamptz(3)
   created_at                    DateTime                        @default(now()) @db.Timestamptz(3)
   after_question_info           after_question_info[]
   payload_locked_documents_rels payload_locked_documents_rels[]
   game_types                    game_types?                     @relation(fields: [gametype_id], references: [id], onUpdate: NoAction, map: "puzzle_games_gametype_id_game_types_id_fk")
+  media                         media                           @relation(fields: [image_id], references: [id], onDelete: SetNull, onUpdate: NoAction, map: "puzzle_games_image_id_media_id_fk")
   regions                       regions?                        @relation(fields: [regionid_id], references: [id], onUpdate: NoAction, map: "puzzle_games_regionid_id_regions_id_fk")
+  puzzle_games_answer           puzzle_games_answer[]
   puzzle_pieces                 puzzle_pieces[]
 
   @@index([created_at])
   @@index([gametype_id], map: "puzzle_games_gametype_idx")
   @@index([regionid_id], map: "puzzle_games_regionid_idx")
   @@index([updated_at])
+  @@index([image_id], map: "puzzle_games_image_idx")
 }
 
 model puzzle_pieces {
   id                            Int                             @id @default(autoincrement())
   puzzleid_id                   Int?
   piece_index                   Decimal?                        @db.Decimal
-  x_position                    Decimal?                        @db.Decimal
-  y_position                    Decimal?                        @db.Decimal
-  correct_x                     Decimal?                        @db.Decimal
-  correct_y                     Decimal?                        @db.Decimal
-  image_piece_url               String?                         @db.VarChar
+  image_piece_id                Int
   updated_at                    DateTime                        @default(now()) @db.Timestamptz(3)
   created_at                    DateTime                        @default(now()) @db.Timestamptz(3)
   payload_locked_documents_rels payload_locked_documents_rels[]
+  media                         media                           @relation(fields: [image_piece_id], references: [id], onDelete: SetNull, onUpdate: NoAction, map: "puzzle_pieces_image_piece_id_media_id_fk")
   puzzle_games                  puzzle_games?                   @relation(fields: [puzzleid_id], references: [id], onUpdate: NoAction, map: "puzzle_pieces_puzzleid_id_puzzle_games_id_fk")
 
   @@index([created_at])
   @@index([puzzleid_id], map: "puzzle_pieces_puzzleid_idx")
   @@index([updated_at])
+  @@index([image_piece_id], map: "puzzle_pieces_image_piece_idx")
 }
 
 model quiz_game_questions {
@@ -442,10 +441,10 @@ model quiz_game_questions {
   option_b                      String?                         @db.VarChar
   option_c                      String?                         @db.VarChar
   option_d                      String?                         @db.VarChar
+  audio_url                     String?                         @db.VarChar
   correct_answer                String?                         @db.VarChar
   updated_at                    DateTime                        @default(now()) @db.Timestamptz(3)
   created_at                    DateTime                        @default(now()) @db.Timestamptz(3)
-  audio_url                     String?                         @db.VarChar
   payload_locked_documents_rels payload_locked_documents_rels[]
   quiz_games                    quiz_games?                     @relation(fields: [quiz_game_id_id], references: [id], onUpdate: NoAction, map: "quiz_game_questions_quiz_game_id_id_quiz_games_id_fk")
 
@@ -522,16 +521,19 @@ model treasure_cards {
   id                            Int                             @id @default(autoincrement())
   treasure_game_id              Int
   type                          enum_treasure_cards_type
-  value                         String                          @db.VarChar
+  value                         String?                         @db.VarChar
+  image_id                      Int?
   match_group                   Decimal                         @db.Decimal
   updated_at                    DateTime                        @default(now()) @db.Timestamptz(3)
   created_at                    DateTime                        @default(now()) @db.Timestamptz(3)
   payload_locked_documents_rels payload_locked_documents_rels[]
+  media                         media?                          @relation(fields: [image_id], references: [id], onUpdate: NoAction, map: "treasure_cards_image_id_media_id_fk")
   treasure_games                treasure_games                  @relation(fields: [treasure_game_id], references: [id], onDelete: SetNull, onUpdate: NoAction, map: "treasure_cards_treasure_game_id_treasure_games_id_fk")
 
   @@index([created_at])
   @@index([treasure_game_id], map: "treasure_cards_treasure_game_idx")
   @@index([updated_at])
+  @@index([image_id], map: "treasure_cards_image_idx")
 }
 
 model treasure_games {
@@ -558,6 +560,7 @@ model user {
   id                            Int                             @id @default(autoincrement())
   full_name                     String                          @db.VarChar
   username                      String?                         @unique(map: "user_username_idx") @db.VarChar
+  password                      String                          @db.VarChar
   avatar_url                    String?                         @default("https://example.com/default-avatar.png") @db.VarChar
   date_of_birth                 DateTime?                       @db.Timestamptz(3)
   location                      String?                         @db.VarChar
@@ -572,7 +575,6 @@ model user {
   hash                          String?                         @db.VarChar
   login_attempts                Decimal?                        @default(0) @db.Decimal
   lock_until                    DateTime?                       @db.Timestamptz(3)
-  password                      String                          @db.VarChar
   achievements                  achievements[]
   comment_reactions             comment_reactions[]
   comments                      comments[]
@@ -629,6 +631,32 @@ model word_games_letters {
 
   @@index([order], map: "word_games_letters_order_idx")
   @@index([parent_id], map: "word_games_letters_parent_id_idx")
+}
+
+model media_links_rels {
+  id          Int         @id @default(autoincrement())
+  order       Int?
+  parent_id   Int
+  path        String      @db.VarChar
+  media_id    Int?
+  media       media?      @relation(fields: [media_id], references: [id], onDelete: Cascade, onUpdate: NoAction, map: "media_links_rels_media_fk")
+  media_links media_links @relation(fields: [parent_id], references: [id], onDelete: Cascade, onUpdate: NoAction, map: "media_links_rels_parent_fk")
+
+  @@index([media_id])
+  @@index([order])
+  @@index([parent_id], map: "media_links_rels_parent_idx")
+  @@index([path])
+}
+
+model puzzle_games_answer {
+  order        Int          @map("_order")
+  parent_id    Int          @map("_parent_id")
+  id           String       @id @db.VarChar
+  index        Decimal?     @db.Decimal
+  puzzle_games puzzle_games @relation(fields: [parent_id], references: [id], onDelete: Cascade, onUpdate: NoAction, map: "puzzle_games_answer_parent_id_fk")
+
+  @@index([order], map: "puzzle_games_answer_order_idx")
+  @@index([parent_id], map: "puzzle_games_answer_parent_id_idx")
 }
 
 enum enum_comment_reactions_reaction_type {

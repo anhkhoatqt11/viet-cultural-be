@@ -3,26 +3,26 @@ const { db } = require('../../utils/db');
 async function getAfterInfo(gameTypeId, gameId) {
     const info = await db.after_question_info.findFirst({
         where: {
-            game_type_id_id: parseInt(gameTypeId, 10),
+            game_type_id_id: 1,
             OR: [
-                { puzzle_game_id_id: parseInt(gameId, 10) },
-                { quiz_game_id_id: parseInt(gameId, 10) },
-                { treasure_game_id_id: parseInt(gameId, 10) },
-                { word_game_id_id: parseInt(gameId, 10) },
-            ],
+                { puzzle_game_id_id: 1 },
+                { quiz_game_id_id: 1 },
+                { treasure_game_id_id: 1 },
+                { word_game_id_id: 1 }
+            ]
         },
         include: {
             media_links: {
                 select: {
                     alt: true,
-                    media_links_src: {
+                    media_links_rels: {
                         select: {
                             id: true,
-                            url: true,
                             order: true,
-                        },
-                    },
-                },
+                            path: true
+                        }
+                    }
+                }
             },
             information_slides: {
                 select: {
@@ -31,15 +31,15 @@ async function getAfterInfo(gameTypeId, gameId) {
                         select: {
                             id: true,
                             order: true,
-                            paragraph: true,
+                            paragraph: true
                         },
                         orderBy: {
-                            order: 'asc',
-                        },
-                    },
-                },
-            },
-        },
+                            order: 'asc'
+                        }
+                    }
+                }
+            }
+        }
     });
 
     if (!info) {

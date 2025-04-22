@@ -167,7 +167,12 @@ router.post('/login', async (req, res, next) => {
     });
     await addRefreshTokenToWhitelist({ refreshToken, userId: existingUser.id });
 
-    res.json({ accessToken, refreshToken });
+    res.json({
+      accessToken,
+      refreshToken,
+      full_name: existingUser.full_name,
+      avatar_url: existingUser.avatar_url
+    });
   } catch (err) {
     next(err);
   }
