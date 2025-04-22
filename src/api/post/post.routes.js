@@ -18,7 +18,7 @@ const { createPost, getPostById, getAllPosts, commentPost } = require('./post.se
  *           schema:
  *             type: object
  *             properties:
- *               userId:
+ *               user_id_id:
  *                 type: number
  *               title:
  *                 type: string
@@ -74,14 +74,16 @@ const { createPost, getPostById, getAllPosts, commentPost } = require('./post.se
  *         description: Internal server error
  */
 
-router.post('/create-post', async (req, res, next) => {
+router.post('/create-post', async (req, res) => {
     try {
-        const { userId, title, question, media, tags } = req.body;
-        // Assuming you have a function to create a post
-        const post = await createPost({ userId, title, question, media, tags });
-        res.status(201).json(post);
-    } catch (err) {
-        next(err);
+        const postData = req.body;
+        const newPost = await createPost({
+            ...postData,
+        });
+        res.status(201).json(newPost);
+    } catch (error) {
+        console.error('Error creating post:', error);
+        res.status(500).json({ error: 'Internal server error' });
     }
 });
 
