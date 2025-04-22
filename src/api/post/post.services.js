@@ -30,13 +30,32 @@ async function getAllPosts() {
     }));
 }
 
-function commentPost(postId, comment) {
-    return db.comments.create({
+async function commentPost(postId, comment) {
+    const createdComment = await db.comments.create({
         data: {
             ...comment,
-            postId,
+            post_id_id: postId,
+        },
+        include: {
+            posts: {
+                include: { media: true },
+            },
         },
     });
+
+    // Format post with imageUrl
+    const post = createdComment.posts;
+    const formattedPost = post
+        ? {
+            ...post,
+            imageUrl: post.media && post.media.key ? `${IMAGE_BASE_URL}${post.media.key}` : null,
+        }
+        : null;
+
+    return {
+        ...createdComment,
+        post: formattedPost,
+    };
 }
 
 module.exports = {
