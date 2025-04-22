@@ -21,8 +21,11 @@ async function getPostById(id) {
         ...post,
         imageUrl: post.media && post.media.key ? `${IMAGE_BASE_URL}${post.media.key}` : null,
         user: post.user ? {
-            ...post.user,
+            id: post.user.id,
+            full_name: post.user.full_name,
+            avatar_url: post.user.avatar_url,
             avatarUrl: post.user.avatar ? `${IMAGE_BASE_URL}${post.user.avatar}` : null
+            // Only include non-confidential fields
         } : null
     };
 }
@@ -38,8 +41,11 @@ async function getAllPosts() {
         ...post,
         imageUrl: post.media && post.media.key ? `${IMAGE_BASE_URL}${post.media.key}` : null,
         user: post.user ? {
-            ...post.user,
+            id: post.user.id,
+            full_name: post.user.full_name,
+            avatar_url: post.user.avatar_url,
             avatarUrl: post.user.avatar ? `${IMAGE_BASE_URL}${post.user.avatar}` : null
+            // Only include non-confidential fields
         } : null
     }));
 }
@@ -67,8 +73,11 @@ async function commentPost(postId, comment) {
             ...post,
             imageUrl: post.media && post.media.key ? `${IMAGE_BASE_URL}${post.media.key}` : null,
             user: post.user ? {
-                ...post.user,
+                id: post.user.id,
+                full_name: post.user.full_name,
+                avatar_url: post.user.avatar_url,
                 avatarUrl: post.user.avatar ? `${IMAGE_BASE_URL}${post.user.avatar}` : null
+                // Only include non-confidential fields
             } : null
         }
         : null;
