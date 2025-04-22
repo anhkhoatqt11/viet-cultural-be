@@ -1,23 +1,34 @@
 const { db } = require('../../utils/db');
 
+const IMAGE_BASE_URL = 'https://qauff8c31y.ufs.sh/f/';
+
 async function getGameData(regionId, gameType) {
     const gameTypeData = await db.game_types.findUnique({
         where: { code: gameType },
         include: {
-            word_games: { // Corrected relation name
+            word_games: {
                 where: { region_id: Number(regionId) },
             },
-            quiz_games: { // Corrected relation name
+            quiz_games: {
                 where: { regionid_id: Number(regionId) },
-                include: { quiz_game_questions: true }, // Corrected relation name
+                include: { quiz_game_questions: true },
             },
-            puzzle_games: { // Corrected relation name
+            puzzle_games: {
                 where: { regionid_id: Number(regionId) },
-                include: { puzzle_pieces: true }, // Corrected relation name
+                include: {
+                    puzzle_pieces: {
+                        include: { media: true }
+                    },
+                    media: true
+                },
             },
-            treasure_games: { // Corrected relation name
+            treasure_games: {
                 where: { region_id: Number(regionId) },
-                include: { treasure_cards: true }, // Corrected relation name
+                include: {
+                    treasure_cards: {
+                        include: { media: true }
+                    }
+                },
             },
         },
     });
@@ -50,6 +61,7 @@ async function getGameData(regionId, gameType) {
                             ...(q.option_d && { D: q.option_d }),
                         },
                         correctAnswer: q.correct_answer,
+                        audioUrl: q.audio_url,
                     }))
                 ),
             };
@@ -57,7 +69,8 @@ async function getGameData(regionId, gameType) {
         case 'puzzle':
             return gameTypeData.puzzle_games.map((game) => ({
                 id: game.id,
-                imageurl: game.imageurl,
+                imageUrl: game.media && game.media.key ? `${IMAGE_BASE_URL}${game.media.key}` : null,
+                hint: game.hint,
                 pieces: game.puzzle_pieces.map((piece) => ({
                     id: piece.id,
                     piece_index: piece.piece_index,
@@ -65,7 +78,7 @@ async function getGameData(regionId, gameType) {
                     y_position: piece.y_position,
                     correct_x: piece.correct_x,
                     correct_y: piece.correct_y,
-                    image_piece_url: piece.image_piece_url,
+                    imageUrl: piece.media && piece.media.key ? `${IMAGE_BASE_URL}${piece.media.key}` : null,
                 })),
             }));
 
@@ -78,6 +91,7 @@ async function getGameData(regionId, gameType) {
                     type: card.type,
                     value: card.value,
                     matchGroup: card.match_group,
+                    imageUrl: card.media && card.media.key ? `${IMAGE_BASE_URL}${card.media.key}` : null,
                 })),
             }));
 

@@ -1,21 +1,33 @@
 const { db } = require('../../utils/db');
 
+const IMAGE_BASE_URL = 'https://qauff8c31y.ufs.sh/f/';
+
 function createPost(post) {
     return db.posts.create({
         data: post,
     });
 }
 
-function getPostById(id) {
-    return db.posts.findUnique({
-        where: {
-            id,
-        },
+async function getPostById(id) {
+    const post = await db.posts.findUnique({
+        where: { id },
+        include: { media: true },
     });
+    if (!post) return null;
+    return {
+        ...post,
+        imageUrl: post.media && post.media.key ? `${IMAGE_BASE_URL}${post.media.key}` : null,
+    };
 }
 
-function getAllPosts() {
-    return db.posts.findMany();
+async function getAllPosts() {
+    const posts = await db.posts.findMany({
+        include: { media: true },
+    });
+    return posts.map(post => ({
+        ...post,
+        imageUrl: post.media && post.media.key ? `${IMAGE_BASE_URL}${post.media.key}` : null,
+    }));
 }
 
 function commentPost(postId, comment) {
@@ -26,7 +38,6 @@ function commentPost(postId, comment) {
         },
     });
 }
-
 
 module.exports = {
     createPost,
