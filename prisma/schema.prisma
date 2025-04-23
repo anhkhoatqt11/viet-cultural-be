@@ -73,6 +73,7 @@ model payload_locked_documents_rels {
   comment_reactions_id     Int?
   game_types_id            Int?
   user_id                  Int?
+  play_process_id          Int?
   achievements             achievements?            @relation(fields: [achievements_id], references: [id], onDelete: Cascade, onUpdate: NoAction, map: "payload_locked_documents_rels_achievements_fk")
   after_question_info      after_question_info?     @relation(fields: [after_question_info_id], references: [id], onDelete: Cascade, onUpdate: NoAction, map: "payload_locked_documents_rels_after_question_info_fk")
   comment_reactions        comment_reactions?       @relation(fields: [comment_reactions_id], references: [id], onDelete: Cascade, onUpdate: NoAction, map: "payload_locked_documents_rels_comment_reactions_fk")
@@ -84,6 +85,7 @@ model payload_locked_documents_rels {
   media_links              media_links?             @relation(fields: [media_links_id], references: [id], onDelete: Cascade, onUpdate: NoAction, map: "payload_locked_documents_rels_media_links_fk")
   payload_locked_documents payload_locked_documents @relation(fields: [parent_id], references: [id], onDelete: Cascade, onUpdate: NoAction, map: "payload_locked_documents_rels_parent_fk")
   password_resets          password_resets?         @relation(fields: [password_resets_id], references: [id], onDelete: Cascade, onUpdate: NoAction, map: "payload_locked_documents_rels_password_resets_fk")
+  play_process             play_process?            @relation(fields: [play_process_id], references: [id], onDelete: Cascade, onUpdate: NoAction, map: "payload_locked_documents_rels_play_process_fk")
   posts                    posts?                   @relation(fields: [posts_id], references: [id], onDelete: Cascade, onUpdate: NoAction, map: "payload_locked_documents_rels_posts_fk")
   puzzle_games             puzzle_games?            @relation(fields: [puzzle_games_id], references: [id], onDelete: Cascade, onUpdate: NoAction, map: "payload_locked_documents_rels_puzzle_games_fk")
   puzzle_pieces            puzzle_pieces?           @relation(fields: [puzzle_pieces_id], references: [id], onDelete: Cascade, onUpdate: NoAction, map: "payload_locked_documents_rels_puzzle_pieces_fk")
@@ -124,6 +126,7 @@ model payload_locked_documents_rels {
   @@index([treasure_games_id])
   @@index([user_id])
   @@index([word_games_id])
+  @@index([play_process_id])
 }
 
 model payload_migrations {
@@ -196,6 +199,7 @@ model achievements {
   created_at                    DateTime                        @default(now()) @db.Timestamptz(3)
   user                          user                            @relation(fields: [user_id_id], references: [id], onDelete: SetNull, onUpdate: NoAction, map: "achievements_user_id_id_user_id_fk")
   payload_locked_documents_rels payload_locked_documents_rels[]
+  play_process                  play_process[]
 
   @@index([created_at])
   @@index([updated_at])
@@ -583,6 +587,7 @@ model user {
   password_resets               password_resets[]
   payload_locked_documents_rels payload_locked_documents_rels[]
   payload_preferences_rels      payload_preferences_rels[]
+  play_process                  play_process[]
   posts                         posts[]
   refresh_tokens                refresh_tokens[]
 
@@ -658,6 +663,27 @@ model puzzle_games_answer {
 
   @@index([order], map: "puzzle_games_answer_order_idx")
   @@index([parent_id], map: "puzzle_games_answer_parent_id_idx")
+}
+
+model play_process {
+  id                            Int                             @id @default(autoincrement())
+  achievement_id_id             Int?
+  user_id_id                    Int?
+  history                       Boolean?                        @default(false)
+  intangible_heritage           Boolean?                        @default(false)
+  tangible_heritage             Boolean?                        @default(false)
+  stars                         Decimal?                        @default(0) @db.Decimal
+  badge                         String?                         @db.VarChar
+  updated_at                    DateTime                        @default(now()) @db.Timestamptz(3)
+  created_at                    DateTime                        @default(now()) @db.Timestamptz(3)
+  payload_locked_documents_rels payload_locked_documents_rels[]
+  achievements                  achievements?                   @relation(fields: [achievement_id_id], references: [id], onUpdate: NoAction, map: "play_process_achievement_id_id_achievements_id_fk")
+  user                          user?                           @relation(fields: [user_id_id], references: [id], onUpdate: NoAction, map: "play_process_user_id_id_user_id_fk")
+
+  @@index([achievement_id_id], map: "play_process_achievement_id_idx")
+  @@index([created_at])
+  @@index([updated_at])
+  @@index([user_id_id], map: "play_process_user_id_idx")
 }
 
 enum enum_comment_reactions_reaction_type {
