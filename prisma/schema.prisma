@@ -206,7 +206,7 @@ model after_question_info {
   id                            Int                             @id @default(autoincrement())
   topic_name                    String                          @db.VarChar
   puzzle_game_id_id             Int?
-  quiz_game_id_id               Int?
+  quiz_game_question_id_id      Int?
   treasure_game_id_id           Int?
   word_game_id_id               Int?
   game_type_id_id               Int?
@@ -214,7 +214,7 @@ model after_question_info {
   created_at                    DateTime                        @default(now()) @db.Timestamptz(3)
   game_types                    game_types?                     @relation(fields: [game_type_id_id], references: [id], onUpdate: NoAction, map: "after_question_info_game_type_id_id_game_types_id_fk")
   puzzle_games                  puzzle_games?                   @relation(fields: [puzzle_game_id_id], references: [id], onUpdate: NoAction, map: "after_question_info_puzzle_game_id_id_puzzle_games_id_fk")
-  quiz_games                    quiz_games?                     @relation(fields: [quiz_game_id_id], references: [id], onUpdate: NoAction, map: "after_question_info_quiz_game_id_id_quiz_games_id_fk")
+  quiz_game_questions           quiz_game_questions?            @relation(fields: [quiz_game_question_id_id], references: [id], onUpdate: NoAction, map: "after_question_info_quiz_game_question_id_id_quiz_game_question")
   treasure_games                treasure_games?                 @relation(fields: [treasure_game_id_id], references: [id], onUpdate: NoAction, map: "after_question_info_treasure_game_id_id_treasure_games_id_fk")
   word_games                    word_games?                     @relation(fields: [word_game_id_id], references: [id], onUpdate: NoAction, map: "after_question_info_word_game_id_id_word_games_id_fk")
   information_slides            information_slides[]
@@ -224,10 +224,10 @@ model after_question_info {
   @@index([created_at])
   @@index([game_type_id_id], map: "after_question_info_game_type_id_idx")
   @@index([puzzle_game_id_id], map: "after_question_info_puzzle_game_id_idx")
-  @@index([quiz_game_id_id], map: "after_question_info_quiz_game_id_idx")
   @@index([treasure_game_id_id], map: "after_question_info_treasure_game_id_idx")
   @@index([updated_at])
   @@index([word_game_id_id], map: "after_question_info_word_game_id_idx")
+  @@index([quiz_game_question_id_id], map: "after_question_info_quiz_game_question_id_idx")
 }
 
 model comment_reactions {
@@ -366,6 +366,7 @@ model posts {
   image_id                      Int?
   updated_at                    DateTime                        @default(now()) @db.Timestamptz(3)
   created_at                    DateTime                        @default(now()) @db.Timestamptz(3)
+  likes                         Decimal?                        @default(0) @db.Decimal
   comments                      comments[]
   payload_locked_documents_rels payload_locked_documents_rels[]
   media                         media?                          @relation(fields: [image_id], references: [id], onUpdate: NoAction, map: "posts_image_id_media_id_fk")
@@ -445,6 +446,7 @@ model quiz_game_questions {
   correct_answer                String?                         @db.VarChar
   updated_at                    DateTime                        @default(now()) @db.Timestamptz(3)
   created_at                    DateTime                        @default(now()) @db.Timestamptz(3)
+  after_question_info           after_question_info[]
   payload_locked_documents_rels payload_locked_documents_rels[]
   quiz_games                    quiz_games?                     @relation(fields: [quiz_game_id_id], references: [id], onUpdate: NoAction, map: "quiz_game_questions_quiz_game_id_id_quiz_games_id_fk")
 
@@ -461,7 +463,6 @@ model quiz_games {
   description                   String?                         @db.VarChar
   updated_at                    DateTime                        @default(now()) @db.Timestamptz(3)
   created_at                    DateTime                        @default(now()) @db.Timestamptz(3)
-  after_question_info           after_question_info[]
   payload_locked_documents_rels payload_locked_documents_rels[]
   quiz_game_questions           quiz_game_questions[]
   game_types                    game_types?                     @relation(fields: [gametype_id], references: [id], onUpdate: NoAction, map: "quiz_games_gametype_id_game_types_id_fk")

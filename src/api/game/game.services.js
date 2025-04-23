@@ -8,6 +8,11 @@ async function getGameData(regionId, gameType) {
         include: {
             word_games: {
                 where: { region_id: Number(regionId) },
+                // Include the letter relations for word games
+                include: {
+                    word_games_correct_letters: true,
+                    word_games_letters: true,
+                }
             },
             quiz_games: {
                 where: { regionid_id: Number(regionId) },
@@ -17,17 +22,17 @@ async function getGameData(regionId, gameType) {
                 where: { regionid_id: Number(regionId) },
                 include: {
                     puzzle_pieces: {
-                        include: { media: true }
+                        include: { media: true } // Include media for each piece
                     },
-                    media: true,
-                    puzzle_games_answer: true
+                    media: true, // Include media for the main puzzle image
+                    puzzle_games_answer: true // Include the answers relation
                 },
             },
             treasure_games: {
                 where: { region_id: Number(regionId) },
                 include: {
                     treasure_cards: {
-                        include: { media: true }
+                        include: { media: true } // Include media for each card
                     }
                 },
             },
@@ -37,19 +42,24 @@ async function getGameData(regionId, gameType) {
     if (!gameTypeData) {
         throw new Error('Game type not found');
     }
+
     switch (gameTypeData.code) {
         case 'word':
+            // Map over word games and extract letters from relations
             return gameTypeData.word_games.map((game) => ({
                 id: game.id,
                 question: game.question,
                 hint: game.hint,
                 answer: game.answer,
-                correct_letters: game.correct_letters,
-                letters: game.letters,
+                // Extract letters from the included relations
+                correct_letters: game.word_games_correct_letters.map(l => l.letter),
+                letters: game.word_games_letters.map(l => l.letter),
             }));
 
         case 'quiz':
+            // Flatten the questions from all quiz games in the region
             return {
+                // Return an array of questions directly as per your previous structure
                 question: gameTypeData.quiz_games.flatMap((game) =>
                     game.quiz_game_questions.map((q) => ({
                         id: q.id,
@@ -58,7 +68,7 @@ async function getGameData(regionId, gameType) {
                             A: q.option_a,
                             B: q.option_b,
                             C: q.option_c,
-                            ...(q.option_d && { D: q.option_d }),
+                            ...(q.option_d && { D: q.option_d }), // Include D only if it exists
                         },
                         correctAnswer: q.correct_answer,
                         audioUrl: q.audio_url,
@@ -74,12 +84,10 @@ async function getGameData(regionId, gameType) {
                 pieces: game.puzzle_pieces.map((piece) => ({
                     id: piece.id,
                     piece_index: piece.piece_index,
-                    x_position: piece.x_position,
-                    y_position: piece.y_position,
-                    correct_x: piece.correct_x,
-                    correct_y: piece.correct_y,
+                    // Removed x_position, y_position, correct_x, correct_y as they are not in the schema
                     imageUrl: piece.media && piece.media.key ? `${IMAGE_BASE_URL}${piece.media.key}` : null,
                 })),
+                // Map over the included answers
                 answers: game.puzzle_games_answer.map((answer) => ({
                     id: answer.id,
                     index: answer.index
