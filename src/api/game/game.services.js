@@ -19,7 +19,8 @@ async function getGameData(regionId, gameType) {
                     puzzle_pieces: {
                         include: { media: true }
                     },
-                    media: true
+                    media: true,
+                    puzzle_games_answer: true
                 },
             },
             treasure_games: {
@@ -36,7 +37,6 @@ async function getGameData(regionId, gameType) {
     if (!gameTypeData) {
         throw new Error('Game type not found');
     }
-
     switch (gameTypeData.code) {
         case 'word':
             return gameTypeData.word_games.map((game) => ({
@@ -80,6 +80,10 @@ async function getGameData(regionId, gameType) {
                     correct_y: piece.correct_y,
                     imageUrl: piece.media && piece.media.key ? `${IMAGE_BASE_URL}${piece.media.key}` : null,
                 })),
+                answers: game.puzzle_games_answer.map((answer) => ({
+                    id: answer.id,
+                    index: answer.index
+                }))
             }));
 
         case 'treasure':
