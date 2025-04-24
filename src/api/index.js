@@ -8,6 +8,7 @@ const post = require('./post/post.routes');
 const assistance = require('./assistance/assistance.routes');
 const comment = require('./comment/comment.routes');
 const tags = require('./tags/tags.routes');
+const knowledge_post = require('./knowledge_post/knowledgePost.routes')
 const router = express.Router();
 
 router.get('/', (req, res) => {
@@ -33,6 +34,8 @@ router.use('/comment', comment);
 router.use('/assistance', assistance)
 
 router.use('/tags', tags);
+
+router.use('/knowledge-post', knowledge_post)
 
 
 module.exports = router;
