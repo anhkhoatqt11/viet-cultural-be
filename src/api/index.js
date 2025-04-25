@@ -9,6 +9,7 @@ const assistance = require('./assistance/assistance.routes');
 const comment = require('./comment/comment.routes');
 const tags = require('./tags/tags.routes');
 const process = require('./process/process.routes')
+const achievement = require('./achievements/achievement.routes')
 const router = express.Router();
 
 router.get('/', (req, res) => {
@@ -34,6 +35,8 @@ router.use('/comment', comment);
 router.use('/assistance', assistance)
 
 router.use('/tags', tags);
+
+router.use('/achievements', achievement)
 
 router.use('/process', process)
 

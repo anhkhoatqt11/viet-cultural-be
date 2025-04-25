@@ -22,6 +22,8 @@ model media {
   height                        Decimal?                        @db.Decimal
   focal_x                       Decimal?                        @db.Decimal
   focal_y                       Decimal?                        @db.Decimal
+  achievements                  achievements[]
+  knowledge_post                knowledge_post[]
   media_links_rels              media_links_rels[]
   payload_locked_documents_rels payload_locked_documents_rels[]
   posts                         posts[]
@@ -74,6 +76,7 @@ model payload_locked_documents_rels {
   game_types_id            Int?
   user_id                  Int?
   play_process_id          Int?
+  knowledge_post_id        Int?
   achievements             achievements?            @relation(fields: [achievements_id], references: [id], onDelete: Cascade, onUpdate: NoAction, map: "payload_locked_documents_rels_achievements_fk")
   after_question_info      after_question_info?     @relation(fields: [after_question_info_id], references: [id], onDelete: Cascade, onUpdate: NoAction, map: "payload_locked_documents_rels_after_question_info_fk")
   comment_reactions        comment_reactions?       @relation(fields: [comment_reactions_id], references: [id], onDelete: Cascade, onUpdate: NoAction, map: "payload_locked_documents_rels_comment_reactions_fk")
@@ -81,6 +84,7 @@ model payload_locked_documents_rels {
   email_verifications      email_verifications?     @relation(fields: [email_verifications_id], references: [id], onDelete: Cascade, onUpdate: NoAction, map: "payload_locked_documents_rels_email_verifications_fk")
   game_types               game_types?              @relation(fields: [game_types_id], references: [id], onDelete: Cascade, onUpdate: NoAction, map: "payload_locked_documents_rels_game_types_fk")
   information_slides       information_slides?      @relation(fields: [information_slides_id], references: [id], onDelete: Cascade, onUpdate: NoAction, map: "payload_locked_documents_rels_information_slides_fk")
+  knowledge_post           knowledge_post?          @relation(fields: [knowledge_post_id], references: [id], onDelete: Cascade, onUpdate: NoAction, map: "payload_locked_documents_rels_knowledge_post_fk")
   media                    media?                   @relation(fields: [media_id], references: [id], onDelete: Cascade, onUpdate: NoAction, map: "payload_locked_documents_rels_media_fk")
   media_links              media_links?             @relation(fields: [media_links_id], references: [id], onDelete: Cascade, onUpdate: NoAction, map: "payload_locked_documents_rels_media_links_fk")
   payload_locked_documents payload_locked_documents @relation(fields: [parent_id], references: [id], onDelete: Cascade, onUpdate: NoAction, map: "payload_locked_documents_rels_parent_fk")
@@ -127,6 +131,7 @@ model payload_locked_documents_rels {
   @@index([user_id])
   @@index([word_games_id])
   @@index([play_process_id])
+  @@index([knowledge_post_id])
 }
 
 model payload_migrations {
@@ -194,9 +199,16 @@ model achievements {
   user_id_id                    Int
   name                          String                          @db.VarChar
   description                   String                          @db.VarChar
-  stars                         Decimal                         @db.Decimal
+  stars                         Decimal?                        @default(0) @db.Decimal
   updated_at                    DateTime                        @default(now()) @db.Timestamptz(3)
   created_at                    DateTime                        @default(now()) @db.Timestamptz(3)
+  region_id_id                  Int
+  history                       Boolean?                        @default(false)
+  intangible_heritage           Boolean?                        @default(false)
+  tangible_heritage             Boolean?                        @default(false)
+  badge_id                      Int?
+  media                         media?                          @relation(fields: [badge_id], references: [id], onUpdate: NoAction, map: "achievements_badge_id_media_id_fk")
+  regions                       regions                         @relation(fields: [region_id_id], references: [id], onDelete: SetNull, onUpdate: NoAction, map: "achievements_region_id_id_regions_id_fk")
   user                          user                            @relation(fields: [user_id_id], references: [id], onDelete: SetNull, onUpdate: NoAction, map: "achievements_user_id_id_user_id_fk")
   payload_locked_documents_rels payload_locked_documents_rels[]
   play_process                  play_process[]
@@ -204,6 +216,8 @@ model achievements {
   @@index([created_at])
   @@index([updated_at])
   @@index([user_id_id], map: "achievements_user_id_idx")
+  @@index([badge_id], map: "achievements_badge_idx")
+  @@index([region_id_id], map: "achievements_region_id_idx")
 }
 
 model after_question_info {
@@ -211,7 +225,7 @@ model after_question_info {
   topic_name                    String                          @db.VarChar
   puzzle_game_id_id             Int?
   quiz_game_question_id_id      Int?
-  treasure_game_id_id           Int?
+  treasure_card_id_id           Int?
   word_game_id_id               Int?
   game_type_id_id               Int?
   updated_at                    DateTime                        @default(now()) @db.Timestamptz(3)
@@ -219,7 +233,7 @@ model after_question_info {
   game_types                    game_types?                     @relation(fields: [game_type_id_id], references: [id], onUpdate: NoAction, map: "after_question_info_game_type_id_id_game_types_id_fk")
   puzzle_games                  puzzle_games?                   @relation(fields: [puzzle_game_id_id], references: [id], onUpdate: NoAction, map: "after_question_info_puzzle_game_id_id_puzzle_games_id_fk")
   quiz_game_questions           quiz_game_questions?            @relation(fields: [quiz_game_question_id_id], references: [id], onUpdate: NoAction, map: "after_question_info_quiz_game_question_id_id_quiz_game_question")
-  treasure_games                treasure_games?                 @relation(fields: [treasure_game_id_id], references: [id], onUpdate: NoAction, map: "after_question_info_treasure_game_id_id_treasure_games_id_fk")
+  treasure_cards                treasure_cards?                 @relation(fields: [treasure_card_id_id], references: [id], onUpdate: NoAction, map: "after_question_info_treasure_card_id_id_treasure_cards_id_fk")
   word_games                    word_games?                     @relation(fields: [word_game_id_id], references: [id], onUpdate: NoAction, map: "after_question_info_word_game_id_id_word_games_id_fk")
   information_slides            information_slides[]
   media_links                   media_links[]
@@ -228,10 +242,10 @@ model after_question_info {
   @@index([created_at])
   @@index([game_type_id_id], map: "after_question_info_game_type_id_idx")
   @@index([puzzle_game_id_id], map: "after_question_info_puzzle_game_id_idx")
-  @@index([treasure_game_id_id], map: "after_question_info_treasure_game_id_idx")
   @@index([updated_at])
   @@index([word_game_id_id], map: "after_question_info_word_game_id_idx")
   @@index([quiz_game_question_id_id], map: "after_question_info_quiz_game_question_id_idx")
+  @@index([treasure_card_id_id], map: "after_question_info_treasure_card_id_idx")
 }
 
 model comment_reactions {
@@ -338,6 +352,7 @@ model media_links {
   after_question_info_id_id     Int?
   updated_at                    DateTime                        @default(now()) @db.Timestamptz(3)
   created_at                    DateTime                        @default(now()) @db.Timestamptz(3)
+  youtube_link                  String?                         @db.VarChar
   after_question_info           after_question_info?            @relation(fields: [after_question_info_id_id], references: [id], onUpdate: NoAction, map: "media_links_after_question_info_id_id_after_question_info_id_fk")
   media_links_rels              media_links_rels[]
   payload_locked_documents_rels payload_locked_documents_rels[]
@@ -370,7 +385,6 @@ model posts {
   image_id                      Int?
   updated_at                    DateTime                        @default(now()) @db.Timestamptz(3)
   created_at                    DateTime                        @default(now()) @db.Timestamptz(3)
-  likes                         Decimal?                        @default(0) @db.Decimal
   comments                      comments[]
   payload_locked_documents_rels payload_locked_documents_rels[]
   media                         media?                          @relation(fields: [image_id], references: [id], onUpdate: NoAction, map: "posts_image_id_media_id_fk")
@@ -389,13 +403,16 @@ model posts_rels {
   parent_id Int
   path      String @db.VarChar
   tags_id   Int?
+  user_id   Int?
   posts     posts  @relation(fields: [parent_id], references: [id], onDelete: Cascade, onUpdate: NoAction, map: "posts_rels_parent_fk")
   tags      tags?  @relation(fields: [tags_id], references: [id], onDelete: Cascade, onUpdate: NoAction, map: "posts_rels_tags_fk")
+  user      user?  @relation(fields: [user_id], references: [id], onDelete: Cascade, onUpdate: NoAction, map: "posts_rels_user_fk")
 
   @@index([order])
   @@index([parent_id], map: "posts_rels_parent_idx")
   @@index([path])
   @@index([tags_id])
+  @@index([user_id])
 }
 
 model puzzle_games {
@@ -500,6 +517,7 @@ model regions {
   description                   String?                         @db.VarChar
   updated_at                    DateTime                        @default(now()) @db.Timestamptz(3)
   created_at                    DateTime                        @default(now()) @db.Timestamptz(3)
+  achievements                  achievements[]
   payload_locked_documents_rels payload_locked_documents_rels[]
   puzzle_games                  puzzle_games[]
   quiz_games                    quiz_games[]
@@ -531,6 +549,7 @@ model treasure_cards {
   match_group                   Decimal                         @db.Decimal
   updated_at                    DateTime                        @default(now()) @db.Timestamptz(3)
   created_at                    DateTime                        @default(now()) @db.Timestamptz(3)
+  after_question_info           after_question_info[]
   payload_locked_documents_rels payload_locked_documents_rels[]
   media                         media?                          @relation(fields: [image_id], references: [id], onUpdate: NoAction, map: "treasure_cards_image_id_media_id_fk")
   treasure_games                treasure_games                  @relation(fields: [treasure_game_id], references: [id], onDelete: SetNull, onUpdate: NoAction, map: "treasure_cards_treasure_game_id_treasure_games_id_fk")
@@ -549,7 +568,6 @@ model treasure_games {
   description                   String?                         @db.VarChar
   updated_at                    DateTime                        @default(now()) @db.Timestamptz(3)
   created_at                    DateTime                        @default(now()) @db.Timestamptz(3)
-  after_question_info           after_question_info[]
   payload_locked_documents_rels payload_locked_documents_rels[]
   treasure_cards                treasure_cards[]
   game_types                    game_types?                     @relation(fields: [gametype_id], references: [id], onUpdate: NoAction, map: "treasure_games_gametype_id_game_types_id_fk")
@@ -589,6 +607,7 @@ model user {
   payload_preferences_rels      payload_preferences_rels[]
   play_process                  play_process[]
   posts                         posts[]
+  posts_rels                    posts_rels[]
   refresh_tokens                refresh_tokens[]
 
   @@index([created_at])
@@ -686,6 +705,23 @@ model play_process {
   @@index([user_id_id], map: "play_process_user_id_idx")
 }
 
+model knowledge_post {
+  id                            Int                             @id @default(autoincrement())
+  subject                       String?                         @db.VarChar
+  title                         String?                         @db.VarChar
+  image_id                      Int?
+  content                       String?                         @db.VarChar
+  post_type                     enum_knowledge_post_post_type
+  updated_at                    DateTime                        @default(now()) @db.Timestamptz(3)
+  created_at                    DateTime                        @default(now()) @db.Timestamptz(3)
+  media                         media?                          @relation(fields: [image_id], references: [id], onUpdate: NoAction, map: "knowledge_post_image_id_media_id_fk")
+  payload_locked_documents_rels payload_locked_documents_rels[]
+
+  @@index([created_at])
+  @@index([image_id], map: "knowledge_post_image_idx")
+  @@index([updated_at])
+}
+
 enum enum_comment_reactions_reaction_type {
   Like
   Dislike
@@ -707,4 +743,11 @@ enum enum_user_gender {
   Male
   Female
   Other
+}
+
+enum enum_knowledge_post_post_type {
+  region
+  province
+  journey
+  category
 }
