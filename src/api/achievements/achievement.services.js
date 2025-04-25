@@ -40,12 +40,18 @@ async function getAchievementById(userId, regionId) {
     }
 }
 
-async function updateAchievement(id, updateData) {
-    const achievement = await db.achievements.findUnique({
+async function updateAchievement(userId, regionId, updateData) {
+    const achievement = await db.achievements.findFirst({
         where: {
-            id: id
+            user_id_id: userId,
+            region_id_id: regionId
         }
     })
+
+    if(!achievement)
+    {
+        throw new Error("Achievement not found")
+    }
 
     let stars = parseInt(achievement.stars) || 0
 
@@ -67,7 +73,7 @@ async function updateAchievement(id, updateData) {
     
     return await db.achievements.update({
         where: {
-            id: id
+            id: parseInt(achievement.id)
         },
         data: {
             ...updateData,
@@ -76,10 +82,11 @@ async function updateAchievement(id, updateData) {
     })
 }
 
-async function deleteAchievement(id) {
+async function deleteAchievement(userId, regionId) {
     return await db.achievements.delete({
         where: {
-            id: id
+            user_id_id: userId,
+            region_id_id: regionId
         }
     })
     

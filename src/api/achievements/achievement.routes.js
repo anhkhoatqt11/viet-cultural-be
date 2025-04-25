@@ -1,7 +1,7 @@
 const express = require('express')
 const { getAllAchievements, getAchievementById, createAchievement, updateAchievement, deleteAchievement } = require('./achievement.services')
 const router = express.Router()
-
+const jwt = require('jsonwebtoken')
 /**
  * @swagger
  * /achievements/get-achievement:
@@ -24,18 +24,12 @@ const router = express.Router()
 
 /**
  * @swagger
- * /achievements/get-achievement/{userId}/{regionId}:
+ * /achievements/get-achievement/{regionId}:
  *   get:
  *     tags: [Achievements]
  *     summary: Get an achievement by userId and regionId
  *     description: Retrieve a specific achievement by user ID and region ID.
  *     parameters:
- *       - in: path
- *         name: userId
- *         required: true
- *         schema:
- *           type: integer
- *         description: The ID of the user
  *       - in: path
  *         name: regionId
  *         required: true
@@ -98,18 +92,18 @@ const router = express.Router()
 
 /**
  * @swagger
- * /achievements/update-achievement/{id}:
+ * /achievements/update-achievement/{regionId}:
  *   patch:
  *     tags: [Achievements]
  *     summary: Update an achievement by ID
  *     description: Update an existing achievement by its ID.
  *     parameters:
  *       - in: path
- *         name: id
+ *         name: regionId
  *         required: true
  *         schema:
  *           type: integer
- *         description: The ID of the achievement
+ *         description: The region id of the achievement
  *     requestBody:
  *       required: true
  *       content:
@@ -144,18 +138,18 @@ const router = express.Router()
 
 /**
  * @swagger
- * /achievements/delete-achievement/{id}:
+ * /achievements/delete-achievement/{regionId}:
  *   delete:
  *     tags: [Achievements]
  *     summary: Delete an achievement by ID
  *     description: Delete an achievement by its ID.
  *     parameters:
  *       - in: path
- *         name: id
+ *         name: regionId
  *         required: true
  *         schema:
  *           type: integer
- *         description: The ID of the achievement
+ *         description: The ID of the region
  *     responses:
  *       204:
  *         description: Achievement deleted successfully
@@ -174,9 +168,18 @@ router.get('/get-achievement', async (req, res, next) => {
     }
 })
 
-router.get('/get-achievement/:userId/:regionId', async (req, res, next) => {
+router.get('/get-achievement/:regionId', async (req, res, next) => {
     try {
-        const post = await getAchievementById(parseInt(req.params.userId), parseInt(req.params.regionId))
+            const token = req.cookies?.token;
+            if (!token) {
+              return res.status(401).json({ message: 'No token provided' });
+            }
+        
+            // Decode the token to get userId (assuming JWT and userId is in payload)
+            const decoded = jwt.verify(token, process.env.JWT_ACCESS_SECRET);
+            const userId = decoded.userId;
+
+        const post = await getAchievementById(parseInt(userId), parseInt(req.params.regionId))
         res.json(post)
     } catch (error) {
         next(error)
@@ -194,22 +197,39 @@ router.post('/create-achievement', async (req, res, next) => {
     }
 })
 
-router.patch('/update-achievement/:id', async (req, res, next) => {
+router.patch('/update-achievement/:regionId', async (req, res, next) => {
     try {
+            const token = req.cookies?.token;
+            if (!token) {
+              return res.status(401).json({ message: 'No token provided' });
+            }
+        
+            // Decode the token to get userId (assuming JWT and userId is in payload)
+            const decoded = jwt.verify(token, process.env.JWT_ACCESS_SECRET);
+            const userId = decoded.userId;
+
         res.status(200).json({
             message: "Đã cập nhật achievement",
-            metadata: await updateAchievement(parseInt(req.params.id), req.body)
+            metadata: await updateAchievement(parseInt(userId), parseInt(req.params.regionId), req.body)
         })
     } catch (error) {
         next(error)
     }
 })
 
-router.delete('/delete-achievement/:id', async (req, res, next) => {
+router.delete('/delete-achievement/:regionId', async (req, res, next) => {
     try {
+            const token = req.cookies?.token;
+            if (!token) {
+              return res.status(401).json({ message: 'No token provided' });
+            }
+        
+            // Decode the token to get userId (assuming JWT and userId is in payload)
+            const decoded = jwt.verify(token, process.env.JWT_ACCESS_SECRET);
+            const userId = decoded.userId;
         res.status(204).send({
             message: "Đã xóa achievement",
-            metadata: await deleteAchievement(parseInt(req.params.id))
+            metadata: await deleteAchievement( parseInt(userId), parseInt(req.params.regionId))
         });
     } catch (error) {
         next(error)
