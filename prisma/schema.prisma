@@ -22,6 +22,7 @@ model media {
   height                        Decimal?                        @db.Decimal
   focal_x                       Decimal?                        @db.Decimal
   focal_y                       Decimal?                        @db.Decimal
+  achievements                  achievements[]
   knowledge_post                knowledge_post[]
   media_links_rels              media_links_rels[]
   payload_locked_documents_rels payload_locked_documents_rels[]
@@ -198,9 +199,16 @@ model achievements {
   user_id_id                    Int
   name                          String                          @db.VarChar
   description                   String                          @db.VarChar
-  stars                         Decimal                         @db.Decimal
+  stars                         Decimal?                        @default(0) @db.Decimal
   updated_at                    DateTime                        @default(now()) @db.Timestamptz(3)
   created_at                    DateTime                        @default(now()) @db.Timestamptz(3)
+  region_id_id                  Int
+  history                       Boolean?                        @default(false)
+  intangible_heritage           Boolean?                        @default(false)
+  tangible_heritage             Boolean?                        @default(false)
+  badge_id                      Int?
+  media                         media?                          @relation(fields: [badge_id], references: [id], onUpdate: NoAction, map: "achievements_badge_id_media_id_fk")
+  regions                       regions                         @relation(fields: [region_id_id], references: [id], onDelete: SetNull, onUpdate: NoAction, map: "achievements_region_id_id_regions_id_fk")
   user                          user                            @relation(fields: [user_id_id], references: [id], onDelete: SetNull, onUpdate: NoAction, map: "achievements_user_id_id_user_id_fk")
   payload_locked_documents_rels payload_locked_documents_rels[]
   play_process                  play_process[]
@@ -208,6 +216,8 @@ model achievements {
   @@index([created_at])
   @@index([updated_at])
   @@index([user_id_id], map: "achievements_user_id_idx")
+  @@index([badge_id], map: "achievements_badge_idx")
+  @@index([region_id_id], map: "achievements_region_id_idx")
 }
 
 model after_question_info {
@@ -507,6 +517,7 @@ model regions {
   description                   String?                         @db.VarChar
   updated_at                    DateTime                        @default(now()) @db.Timestamptz(3)
   created_at                    DateTime                        @default(now()) @db.Timestamptz(3)
+  achievements                  achievements[]
   payload_locked_documents_rels payload_locked_documents_rels[]
   puzzle_games                  puzzle_games[]
   quiz_games                    quiz_games[]
