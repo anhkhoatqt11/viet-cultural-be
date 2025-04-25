@@ -100,6 +100,7 @@ async function getGameData(regionId, gameType) {
                 title: game.title,
                 description: game.description,
                 cardsData: game.treasure_cards.map((card) => ({
+                    id: card.id,
                     type: card.type,
                     value: card.value,
                     matchGroup: card.match_group,

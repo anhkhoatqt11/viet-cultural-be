@@ -130,8 +130,8 @@ model payload_locked_documents_rels {
   @@index([treasure_games_id])
   @@index([user_id])
   @@index([word_games_id])
-  @@index([play_process_id])
   @@index([knowledge_post_id])
+  @@index([play_process_id])
 }
 
 model payload_migrations {
@@ -684,6 +684,23 @@ model puzzle_games_answer {
   @@index([parent_id], map: "puzzle_games_answer_parent_id_idx")
 }
 
+model knowledge_post {
+  id                            Int                             @id @default(autoincrement())
+  subject                       String?                         @db.VarChar
+  title                         String?                         @db.VarChar
+  image_id                      Int?
+  content                       String?                         @db.VarChar
+  post_type                     enum_knowledge_post_post_type
+  updated_at                    DateTime                        @default(now()) @db.Timestamptz(3)
+  created_at                    DateTime                        @default(now()) @db.Timestamptz(3)
+  media                         media?                          @relation(fields: [image_id], references: [id], onUpdate: NoAction, map: "knowledge_post_image_id_media_id_fk")
+  payload_locked_documents_rels payload_locked_documents_rels[]
+
+  @@index([created_at])
+  @@index([image_id], map: "knowledge_post_image_idx")
+  @@index([updated_at])
+}
+
 model play_process {
   id                            Int                             @id @default(autoincrement())
   achievement_id_id             Int?
@@ -705,22 +722,6 @@ model play_process {
   @@index([user_id_id], map: "play_process_user_id_idx")
 }
 
-model knowledge_post {
-  id                            Int                             @id @default(autoincrement())
-  subject                       String?                         @db.VarChar
-  title                         String?                         @db.VarChar
-  image_id                      Int?
-  content                       String?                         @db.VarChar
-  post_type                     enum_knowledge_post_post_type
-  updated_at                    DateTime                        @default(now()) @db.Timestamptz(3)
-  created_at                    DateTime                        @default(now()) @db.Timestamptz(3)
-  media                         media?                          @relation(fields: [image_id], references: [id], onUpdate: NoAction, map: "knowledge_post_image_id_media_id_fk")
-  payload_locked_documents_rels payload_locked_documents_rels[]
-
-  @@index([created_at])
-  @@index([image_id], map: "knowledge_post_image_idx")
-  @@index([updated_at])
-}
 
 enum enum_comment_reactions_reaction_type {
   Like
