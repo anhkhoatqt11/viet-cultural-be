@@ -2,7 +2,7 @@ const express = require('express');
 const router = express.Router();
 
 
-const { createPost, getPostById, getAllPosts, commentPost } = require('./post.services');
+const { createPost, getPostById, getAllPosts, commentPost,likePost, isPostLikedByUser, getLikesByPostId  } = require('./post.services');
 
 /**
  * @swagger
@@ -142,6 +142,152 @@ router.post('/comment-post', async (req, res, next) => {
         res.json(post);
     } catch (err) {
         next(err);
+    }
+});
+
+
+/**
+ * @swagger
+ * /post/like:
+ *   post:
+ *     summary: Like or unlike a post
+ *     tags:
+ *       - Posts
+ *     description: Toggle like status for a post. Creates a relation if not liked, removes if already liked.
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             properties:
+ *               postId:
+ *                 type: number
+ *                 description: ID of the post to like/unlike
+ *               userId:
+ *                 type: number
+ *                 description: ID of the user liking/unliking the post
+ *     responses:
+ *       200:
+ *         description: Success response with updated like status
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 liked:
+ *                   type: boolean
+ *                   description: Current like status (true=liked, false=not liked)
+ *                 likeCount:
+ *                   type: number
+ *                   description: Updated number of likes for the post
+ *                 message:
+ *                   type: string
+ *                   description: Success message
+ *       404:
+ *         description: Post not found
+ *       500:
+ *         description: Internal server error
+ */
+router.post('/like', async (req, res) => {
+    try {
+        const { postId, userId } = req.body;
+
+        if (!postId || !userId) {
+            return res.status(400).json({ error: 'Missing required fields: postId or userId' });
+        }
+
+        const result = await likePost(postId, userId);
+        res.status(200).json(result);
+    } catch (error) {
+        console.error('Error liking post:', error);
+
+        if (error.message === 'Post not found') {
+            return res.status(404).json({ error: 'Post not found' });
+        }
+
+        res.status(500).json({ error: 'Internal server error' });
+    }
+});
+
+/**
+ * @swagger
+ * /post/{postId}/is-liked:
+ *   get:
+ *     summary: Check if a user liked a post
+ *     tags:
+ *       - Posts
+ *     parameters:
+ *       - in: path
+ *         name: postId
+ *         required: true
+ *         schema:
+ *           type: number
+ *         description: ID of the post to check
+ *       - in: query
+ *         name: userId
+ *         required: true
+ *         schema:
+ *           type: number
+ *         description: ID of the user to check
+ *     responses:
+ *       200:
+ *         description: Successfully retrieved like status
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 liked:
+ *                   type: boolean
+ *       500:
+ *         description: Internal server error
+ */
+router.get('/:postId/is-liked', async (req, res) => {
+    try {
+        const { postId } = req.params;
+        const { userId } = req.query;
+
+        if (!userId) {
+            return res.status(400).json({ error: 'Missing required query parameter: userId' });
+        }
+
+        const liked = await isPostLikedByUser(postId, userId);
+        res.status(200).json({ liked });
+    } catch (error) {
+        console.error('Error checking post like status:', error);
+        res.status(500).json({ error: 'Internal server error' });
+    }
+});
+
+/**
+ * @swagger
+ * /post/{postId}/likes:
+ *   get:
+ *     summary: Get users who liked a post
+ *     tags:
+ *       - Posts
+ *     parameters:
+ *       - in: path
+ *         name: postId
+ *         required: true
+ *         schema:
+ *           type: number
+ *         description: ID of the post
+ *     responses:
+ *       200:
+ *         description: Successfully retrieved users who liked the post
+ *       500:
+ *         description: Internal server error
+ */
+router.get('/:postId/likes', async (req, res) => {
+    try {
+        const { postId } = req.params;
+        const likes = await getLikesByPostId(postId);
+        res.status(200).json(likes);
+    } catch (error) {
+        console.error('Error fetching post likes:', error);
+        res.status(500).json({ error: 'Internal server error' });
     }
 });
 

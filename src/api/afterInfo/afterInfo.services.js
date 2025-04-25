@@ -8,9 +8,8 @@ async function getAfterInfo(gameTypeId, gameId) {
             game_type_id_id: Number(gameTypeId),
             OR: [
                 { puzzle_game_id_id: Number(gameId) },
-                // Sửa lại thành quiz_game_question_id_id theo schema
-                { quiz_game_question_id_id: Number(gameId) }, 
-                { treasure_game_id_id: Number(gameId) },
+                { quiz_game_question_id_id: Number(gameId) },
+                { treasure_card_id_id: Number(gameId) }, // Changed from treasure_game_id_id to treasure_card_id_id
                 { word_game_id_id: Number(gameId) }
             ]
         },
@@ -18,6 +17,7 @@ async function getAfterInfo(gameTypeId, gameId) {
             media_links: {
                 select: {
                     alt: true,
+                    youtube_link: true, // Added youtube_link from media_links
                     media_links_rels: {
                         select: {
                             id: true,
@@ -42,7 +42,7 @@ async function getAfterInfo(gameTypeId, gameId) {
                             paragraph: true
                         },
                         orderBy: {
-                            order: 'asc' // Prisma tự động xử lý mapping _order
+                            order: 'asc'
                         }
                     }
                 }
@@ -54,9 +54,10 @@ async function getAfterInfo(gameTypeId, gameId) {
         return null;
     }
 
-    // Phần định dạng dữ liệu giữ nguyên vì nó truy cập đúng các trường đã include
+    // Format the response data to include youtube_link
     const formattedLinks = info.media_links.map(link => ({
         alt: link.alt,
+        youtubeLink: link.youtube_link, // Added youtube_link to the formatted output
         images: link.media_links_rels.map(rel => ({
             id: rel.id,
             order: rel.order,
