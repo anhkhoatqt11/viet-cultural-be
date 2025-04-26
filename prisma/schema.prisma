@@ -269,8 +269,6 @@ model comments {
   post_id_id                    Int?
   user_id_id                    Int?
   content                       String?                         @db.VarChar
-  likes                         Decimal?                        @default(0) @db.Decimal
-  dislikes                      Decimal?                        @default(0) @db.Decimal
   parent_id_id                  Int?
   updated_at                    DateTime                        @default(now()) @db.Timestamptz(3)
   created_at                    DateTime                        @default(now()) @db.Timestamptz(3)
@@ -279,6 +277,7 @@ model comments {
   other_comments                comments[]                      @relation("commentsTocomments")
   posts                         posts?                          @relation(fields: [post_id_id], references: [id], onUpdate: NoAction, map: "comments_post_id_id_posts_id_fk")
   user                          user?                           @relation(fields: [user_id_id], references: [id], onUpdate: NoAction, map: "comments_user_id_id_user_id_fk")
+  comments_rels                 comments_rels[]
   payload_locked_documents_rels payload_locked_documents_rels[]
 
   @@index([created_at])
@@ -601,6 +600,7 @@ model user {
   achievements                  achievements[]
   comment_reactions             comment_reactions[]
   comments                      comments[]
+  comments_rels                 comments_rels[]
   email_verifications           email_verifications[]
   password_resets               password_resets[]
   payload_locked_documents_rels payload_locked_documents_rels[]
@@ -720,6 +720,21 @@ model play_process {
   @@index([created_at])
   @@index([updated_at])
   @@index([user_id_id], map: "play_process_user_id_idx")
+}
+
+model comments_rels {
+  id        Int      @id @default(autoincrement())
+  order     Int?
+  parent_id Int
+  path      String   @db.VarChar
+  user_id   Int?
+  comments  comments @relation(fields: [parent_id], references: [id], onDelete: Cascade, onUpdate: NoAction, map: "comments_rels_parent_fk")
+  user      user?    @relation(fields: [user_id], references: [id], onDelete: Cascade, onUpdate: NoAction, map: "comments_rels_user_fk")
+
+  @@index([order])
+  @@index([parent_id], map: "comments_rels_parent_idx")
+  @@index([path])
+  @@index([user_id])
 }
 
 enum enum_comment_reactions_reaction_type {

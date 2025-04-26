@@ -198,7 +198,14 @@ async function getAllPosts(options = {}) {
             comments: {
                 take: 3, // Get only the 3 most recent comments for preview
                 orderBy: { created_at: 'desc' },
-                include: { user: true }
+                include: { 
+                    user: true,
+                    comments_rels: {
+                        where: {
+                            path: 'likedBy'
+                        }
+                    }
+                }
             },
             _count: {
                 select: { comments: true }
@@ -214,20 +221,24 @@ async function getAllPosts(options = {}) {
         // Count likes (posts_rels with path='likedBy')
         const likeCount = post.posts_rels.filter(rel => rel.path === 'likedBy').length;
 
-        // Format comments for preview
-        const formattedComments = post.comments.map(comment => ({
-            id: comment.id,
-            content: comment.content,
-            likes: comment.likes,
-            dislikes: comment.dislikes,
-            created_at: comment.created_at,
-            user: comment.user ? {
-                id: comment.user.id,
-                full_name: comment.user.full_name,
-                avatar_url: comment.user.avatar_url,
-                avatarUrl: comment.user.avatar ? `${IMAGE_BASE_URL}${comment.user.avatar}` : null
-            } : null
-        }));
+        // Format comments for preview with likes from comments_rels
+        const formattedComments = post.comments.map(comment => {
+            // Count likes from comments_rels
+            const commentLikes = comment.comments_rels ? comment.comments_rels.length : 0;
+            
+            return {
+                id: comment.id,
+                content: comment.content,
+                likes: commentLikes,
+                created_at: comment.created_at,
+                user: comment.user ? {
+                    id: comment.user.id,
+                    full_name: comment.user.full_name,
+                    avatar_url: comment.user.avatar_url,
+                    avatarUrl: comment.user.avatar ? `${IMAGE_BASE_URL}${comment.user.avatar}` : null
+                } : null
+            };
+        });
 
         // Format the image URL based on whether it's an UploadThing URL or older URL format
         const mediaUrl = post.media ? 
