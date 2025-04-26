@@ -11,7 +11,7 @@ async function createPost(post) {
     return await db.$transaction(async (tx) => {
         // Check if we have image info but not image_id
         let imageId = post.image_id;
-        
+
         // If image data is provided but no image_id, create a media record first
         if (image && !imageId) {
             // Create a new media entry with the data from UploadThing
@@ -25,7 +25,7 @@ async function createPost(post) {
                     filesize: image.fileSize || 0,
                 }
             });
-            
+
             imageId = newMedia.id;
         }
 
@@ -134,14 +134,14 @@ async function getPostById(id) {
     });
 
     // Format the image URL based on whether it's an UploadThing URL or older URL format
-    const mediaUrl = post.media ? 
-        (post.media.url ? 
-            post.media.url : 
-            (post.media.key ? 
-                (post.media.key.startsWith('ut_') ? 
-                    `${UPLOADTHING_BASE_URL}${post.media.key}` : 
-                    `${IMAGE_BASE_URL}${post.media.key}`) : 
-                null)) : 
+    const mediaUrl = post.media ?
+        (post.media.url ?
+            post.media.url :
+            (post.media.key ?
+                (post.media.key.startsWith('ut_') ?
+                    `${UPLOADTHING_BASE_URL}${post.media.key}` :
+                    `${IMAGE_BASE_URL}${post.media.key}`) :
+                null)) :
         null;
 
     return {
@@ -185,7 +185,7 @@ async function getAllPosts(options = {}) {
 
     // Get total count for pagination
     const totalCount = await db.posts.count({ where: whereCondition });
-    
+
     // Get posts with pagination
     const posts = await db.posts.findMany({
         where: whereCondition,
@@ -194,11 +194,14 @@ async function getAllPosts(options = {}) {
         include: {
             media: true,
             user: true,
-            posts_rels: true,
+            posts_rels: {
+                include: {
+                    tags: true
+                }
+            },
             comments: {
-                take: 3, // Get only the 3 most recent comments for preview
                 orderBy: { created_at: 'desc' },
-                include: { 
+                include: {
                     user: true,
                     comments_rels: {
                         where: {
@@ -225,7 +228,15 @@ async function getAllPosts(options = {}) {
         const formattedComments = post.comments.map(comment => {
             // Count likes from comments_rels
             const commentLikes = comment.comments_rels ? comment.comments_rels.length : 0;
-            
+
+            const tags = post.posts_rels
+                .filter(rel => rel.path === 'tags' && rel.tags)
+                .map(rel => ({
+                    id: rel.tags.id,
+                    name: rel.tags.name
+                }));
+
+
             return {
                 id: comment.id,
                 content: comment.content,
@@ -241,14 +252,14 @@ async function getAllPosts(options = {}) {
         });
 
         // Format the image URL based on whether it's an UploadThing URL or older URL format
-        const mediaUrl = post.media ? 
-            (post.media.url ? 
-                post.media.url : 
-                (post.media.key ? 
-                    (post.media.key.startsWith('ut_') ? 
-                        `${UPLOADTHING_BASE_URL}${post.media.key}` : 
-                        `${IMAGE_BASE_URL}${post.media.key}`) : 
-                    null)) : 
+        const mediaUrl = post.media ?
+            (post.media.url ?
+                post.media.url :
+                (post.media.key ?
+                    (post.media.key.startsWith('ut_') ?
+                        `${UPLOADTHING_BASE_URL}${post.media.key}` :
+                        `${IMAGE_BASE_URL}${post.media.key}`) :
+                    null)) :
             null;
 
         return {
@@ -266,7 +277,8 @@ async function getAllPosts(options = {}) {
             } : null,
             likeCount,
             commentCount: post._count.comments,
-            comments: formattedComments
+            comments: formattedComments,
+            tags
         };
     });
 
