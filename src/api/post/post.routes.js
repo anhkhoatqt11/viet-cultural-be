@@ -2,7 +2,7 @@ const express = require('express');
 const router = express.Router();
 
 
-const { createPost, getPostById, getAllPosts, commentPost,likePost, isPostLikedByUser, getLikesByPostId  } = require('./post.services');
+const { createPost, getPostById, getAllPosts, commentPost, likePost, unlikePost, isPostLikedByUser, getLikesByPostId  } = require('./post.services');
 
 /**
  * @swagger
@@ -211,10 +211,10 @@ router.post('/comment-post', async (req, res, next) => {
  * @swagger
  * /post/like:
  *   post:
- *     summary: Like or unlike a post
+ *     summary: Like a post
  *     tags:
  *       - Posts
- *     description: Toggle like status for a post. Creates a relation if not liked, removes if already liked.
+ *     description: Like a post. Creates a like relation between user and post.
  *     requestBody:
  *       required: true
  *       content:
@@ -224,10 +224,10 @@ router.post('/comment-post', async (req, res, next) => {
  *             properties:
  *               postId:
  *                 type: number
- *                 description: ID of the post to like/unlike
+ *                 description: ID of the post to like
  *               userId:
  *                 type: number
- *                 description: ID of the user liking/unliking the post
+ *                 description: ID of the user liking the post
  *     responses:
  *       200:
  *         description: Success response with updated like status
@@ -238,13 +238,15 @@ router.post('/comment-post', async (req, res, next) => {
  *               properties:
  *                 liked:
  *                   type: boolean
- *                   description: Current like status (true=liked, false=not liked)
+ *                   description: Current like status (true=liked)
  *                 likeCount:
  *                   type: number
  *                   description: Updated number of likes for the post
  *                 message:
  *                   type: string
  *                   description: Success message
+ *       400:
+ *         description: Bad request - Already liked or missing parameters
  *       404:
  *         description: Post not found
  *       500:
@@ -265,6 +267,80 @@ router.post('/like', async (req, res) => {
 
         if (error.message === 'Post not found') {
             return res.status(404).json({ error: 'Post not found' });
+        }
+
+        if (error.message === 'Post already liked by user') {
+            return res.status(400).json({ error: 'Post already liked by user' });
+        }
+
+        res.status(500).json({ error: 'Internal server error' });
+    }
+});
+
+/**
+ * @swagger
+ * /post/unlike:
+ *   post:
+ *     summary: Unlike a post
+ *     tags:
+ *       - Posts
+ *     description: Unlike a post. Removes the like relation between user and post.
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             properties:
+ *               postId:
+ *                 type: number
+ *                 description: ID of the post to unlike
+ *               userId:
+ *                 type: number
+ *                 description: ID of the user unliking the post
+ *     responses:
+ *       200:
+ *         description: Success response with updated like status
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 liked:
+ *                   type: boolean
+ *                   description: Current like status (false=not liked)
+ *                 likeCount:
+ *                   type: number
+ *                   description: Updated number of likes for the post
+ *                 message:
+ *                   type: string
+ *                   description: Success message
+ *       400:
+ *         description: Bad request - Not liked or missing parameters
+ *       404:
+ *         description: Post not found
+ *       500:
+ *         description: Internal server error
+ */
+router.post('/unlike', async (req, res) => {
+    try {
+        const { postId, userId } = req.body;
+
+        if (!postId || !userId) {
+            return res.status(400).json({ error: 'Missing required fields: postId or userId' });
+        }
+
+        const result = await unlikePost(postId, userId);
+        res.status(200).json(result);
+    } catch (error) {
+        console.error('Error unliking post:', error);
+
+        if (error.message === 'Post not found') {
+            return res.status(404).json({ error: 'Post not found' });
+        }
+
+        if (error.message === 'Post not liked by user') {
+            return res.status(400).json({ error: 'Post not liked by user' });
         }
 
         res.status(500).json({ error: 'Internal server error' });
