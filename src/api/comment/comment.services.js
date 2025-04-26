@@ -260,6 +260,48 @@ const isCommentLikedByUser = async (commentId, userId) => {
     return !!reaction; // Convert to boolean (true if reaction exists, false if not)
 };
 
+
+const unlikeComment = async (commentId, userId) => {
+    const comment = await Comment.findUnique({
+        where: { id: parseInt(commentId) }
+    });
+    
+    if (!comment) {
+        throw new Error('Bình luận không tồn tại');
+    }
+    
+    const existingLike = await CommentReaction.findFirst({
+        where: {
+            comment_id: parseInt(commentId),
+            user_id: parseInt(userId),
+            reaction_type: "Like"
+        }
+    });
+
+    if (!existingLike) {
+        return { 
+            message: "Chưa thích bình luận này",
+            likes: comment.likes
+        };
+    }
+
+    // Delete the like reaction
+    await CommentReaction.delete({
+        where: { id: existingLike.id }
+    });
+    
+    // Decrement the likes count
+    await Comment.update({
+        where: { id: parseInt(commentId) },
+        data: { likes: { decrement: 1 } }
+    });
+    
+    return { 
+        message: "Đã bỏ thích bình luận", 
+        likes: comment.likes - 1
+    };
+};
+
 module.exports = {
     createComment,
     getCommentById,
@@ -268,5 +310,6 @@ module.exports = {
     likeComment,
     dislikeComment,
     getCommentsByPostId,
-    isCommentLikedByUser
+    isCommentLikedByUser,
+    unlikeComment
 };

@@ -8,7 +8,8 @@ const {
     likeComment,
     dislikeComment,
     getCommentsByPostId,
-    isCommentLikedByUser
+    isCommentLikedByUser,
+    unlikeComment
 } = require('./comment.services');
 
 /**
@@ -287,6 +288,70 @@ router.post('/dislike-comment/:id', async (req, res, next) => {
     }
 });
 
+/**
+ * @swagger
+ * /comment/unlike-comment/{id}:
+ *   post:
+ *     tags: [Comment]
+ *     summary: Unlike a comment
+ *     description: Remove a like from a comment by its ID
+ *     parameters:
+ *       - in: path
+ *         name: id
+ *         required: true
+ *         schema:
+ *           type: string
+ *         description: The ID of the comment
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             properties:
+ *               userId:
+ *                 type: string
+ *                 description: The ID of the user unliking the comment
+ *     responses:
+ *       200:
+ *         description: Successfully unliked the comment
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 message:
+ *                   type: string
+ *                   description: Success message
+ *                 likes:
+ *                   type: number
+ *                   description: Updated number of likes
+ *       404:
+ *         description: Comment not found
+ *       500:
+ *         description: Internal server error
+ */
+router.post('/unlike-comment/:id', async (req, res, next) => {
+    try {
+        const { userId } = req.body;
+        const commentId = req.params.id;
+        
+        if (!userId) {
+            return res.status(400).json({ error: 'Missing required field: userId' });
+        }
+        
+        const result = await unlikeComment(commentId, userId);
+        res.status(200).json(result);
+    } catch (error) {
+        console.error('Error unliking comment:', error);
+        
+        if (error.message === 'Bình luận không tồn tại') {
+            return res.status(404).json({ error: 'Comment not found' });
+        }
+        
+        next(error);
+    }
+});
 
 /**
  * @swagger
