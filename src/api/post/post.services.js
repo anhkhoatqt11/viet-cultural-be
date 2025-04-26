@@ -247,7 +247,6 @@ async function commentPost(postId, comment) {
     };
 }
 
-// Adding dedicated functions for liking and unliking posts
 async function likePost(postId, userId) {
     // Convert IDs to numbers for consistency
     postId = Number(postId);
@@ -272,80 +271,48 @@ async function likePost(postId, userId) {
     });
 
     if (existingLike) {
-        // User already liked the post
-        throw new Error('Post already liked by user');
+        // User already liked the post, so unlike it
+        await db.posts_rels.delete({
+            where: { id: existingLike.id }
+        });
+
+        // Get updated like count
+        const likeCount = await db.posts_rels.count({
+            where: {
+                parent_id: postId,
+                path: 'likedBy'
+            }
+        });
+
+        return {
+            liked: false,
+            likeCount,
+            message: 'Post unliked successfully'
+        };
+    } else {
+        // User hasn't liked the post yet, so like it
+        await db.posts_rels.create({
+            data: {
+                parent_id: postId,
+                user_id: userId,
+                path: 'likedBy'
+            }
+        });
+
+        // Get updated like count
+        const likeCount = await db.posts_rels.count({
+            where: {
+                parent_id: postId,
+                path: 'likedBy'
+            }
+        });
+
+        return {
+            liked: true,
+            likeCount,
+            message: 'Post liked successfully'
+        };
     }
-
-    // User hasn't liked the post yet, so like it
-    await db.posts_rels.create({
-        data: {
-            parent_id: postId,
-            user_id: userId,
-            path: 'likedBy'
-        }
-    });
-
-    // Get updated like count
-    const likeCount = await db.posts_rels.count({
-        where: {
-            parent_id: postId,
-            path: 'likedBy'
-        }
-    });
-
-    return {
-        liked: true,
-        likeCount,
-        message: 'Post liked successfully'
-    };
-}
-
-async function unlikePost(postId, userId) {
-    // Convert IDs to numbers for consistency
-    postId = Number(postId);
-    userId = Number(userId);
-
-    // Check if post exists
-    const post = await db.posts.findUnique({
-        where: { id: postId }
-    });
-
-    if (!post) {
-        throw new Error('Post not found');
-    }
-
-    // Check if user already liked this post
-    const existingLike = await db.posts_rels.findFirst({
-        where: {
-            parent_id: postId,
-            user_id: userId,
-            path: 'likedBy'
-        }
-    });
-
-    if (!existingLike) {
-        // User hasn't liked the post
-        throw new Error('Post not liked by user');
-    }
-
-    // Unlike the post
-    await db.posts_rels.delete({
-        where: { id: existingLike.id }
-    });
-
-    // Get updated like count
-    const likeCount = await db.posts_rels.count({
-        where: {
-            parent_id: postId,
-            path: 'likedBy'
-        }
-    });
-
-    return {
-        liked: false,
-        likeCount,
-        message: 'Post unliked successfully'
-    };
 }
 
 /**
@@ -396,13 +363,15 @@ async function getLikesByPostId(postId) {
     }));
 }
 
+
+
+
 module.exports = {
     createPost,
     getPostById,
     getAllPosts,
     commentPost,
     likePost,
-    unlikePost,
     isPostLikedByUser,
     getLikesByPostId
 };
