@@ -31,7 +31,7 @@ app.use(
 
 // CORS configuration
 const corsOptions = {
-  origin: [process.env.FRONTEND_URL || 'http://localhost:5173' || 'https://cutural-vie.vercel.app/'],
+  origin: ['http://localhost:5173' || 'https://cutural-vie.vercel.app/'],
   methods: ['GET', 'POST', 'PUT', 'DELETE', 'PATCH', 'OPTIONS'],
   allowedHeaders: [
     'Content-Type', 
