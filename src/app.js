@@ -6,9 +6,8 @@ const swaggerUi = require('swagger-ui-express');
 const swaggerJsDoc = require('swagger-jsdoc');
 const cookieParser = require('cookie-parser');
 const path = require('path');
-const fileUpload = require('express-fileupload');
 const { createRouteHandler } = require('uploadthing/express');
-const { uploadRouter } = require('./utils/uploadthing');
+const { ourFileRouter } = require('./utils/uploadthing');
 
 require('dotenv').config();
 
@@ -24,7 +23,7 @@ app.use(
       directives: {
         defaultSrc: ["'self'"],
         scriptSrc: ["'self'", "https://cdnjs.cloudflare.com"],
-        connectSrc: ["*"],  // Allow all connection sources
+        connectSrc: ["'self'", "https://uploadthing.com", "https://*.uploadthing.com"],
         imgSrc: ["'self'", "data:", "*"],
         styleSrc: ["'self'", "'unsafe-inline'"]
       }
@@ -34,15 +33,20 @@ app.use(
 
 // CORS configuration
 const corsOptions = {
-  origin: [process.env.FRONTEND_URL || 'http://localhost:5173'],
+  origin: [process.env.FRONTEND_URL || 'http://localhost:5173', 'https://uploadthing.com'],
   methods: ['GET', 'POST', 'PUT', 'DELETE', 'PATCH', 'OPTIONS'],
   allowedHeaders: [
-    'Content-Type', 
-    'Authorization', 
-    'Origin', 
-    'X-Requested-With', 
+    'Content-Type',
+    'Authorization',
+    'Origin',
+    'X-Requested-With',
     'Accept',
-    'userid'  // Added for UploadThing
+    'uploadthing-hook',
+    'uploadthing-client',
+    'x-uploadthing-api-key',
+    'x-uploadthing-version',
+    'x-uploadthing-fe-package',
+    'x-uploadthing-be-adapter'
   ],
   credentials: true,
   optionSuccessStatus: 200,
@@ -57,24 +61,11 @@ app.use(express.json({ limit: '10mb' }));
 app.use(express.urlencoded({ extended: true, limit: '10mb' }));
 app.use(cookieParser());
 
-// File upload middleware
-app.use(fileUpload({
-  useTempFiles: true,
-  tempFileDir: '/tmp/',
-  limits: { fileSize: 10 * 1024 * 1024 }, // 10MB limit
-  abortOnLimit: true
-}));
-
 // UploadThing route handler
 app.use(
   "/api/uploadthing",
   createRouteHandler({
-    router: uploadRouter,
-    config: {
-      uploadthingId: process.env.UPLOADTHING_APP_ID,
-      uploadthingSecret: process.env.UPLOADTHING_SECRET,
-      isDev: process.env.NODE_ENV !== 'production',
-    }
+    router: ourFileRouter
   })
 );
 
