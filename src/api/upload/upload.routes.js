@@ -1,24 +1,27 @@
-const express = require('express');
-const { db } = require('../../utils/db');
+const express = require("express");
+const { createRouteHandler } = require("uploadthing/server");
+const { uploadRouter } = require("../../utils/uploadthing");
 
 const router = express.Router();
+
 
 /**
  * @swagger
  * tags:
- *   name: Upload
- *   description: File upload endpoints for image management (GET only)
+ *   - name: Upload
+ *     description: File upload operations
+ *   - name: Posts
+ *     description: Post management operations
  */
 
-// Remove the old POST / route as uploads are now handled by /api/uploadthing
-/*
+/**
  * @swagger
  * /upload:
  *   post:
- *     summary: DEPRECATED - Upload an image file
- *     tags: [Upload]
- *     description: This endpoint is deprecated. Use /api/uploadthing instead.
- *     deprecated: true
+ *     summary: Upload an image using UploadThing
+ *     tags:
+ *       - Upload
+ *     description: Uploads image files to UploadThing for use in posts
  *     requestBody:
  *       required: true
  *       content:
@@ -31,63 +34,38 @@ const router = express.Router();
  *                 format: binary
  *                 description: The image file to upload
  *     responses:
- *       410:
- *         description: Endpoint deprecated
- */
-// router.post('/', ...) - Removed
-
-/**
- * @swagger
- * /upload/{id}:
- *   get:
- *     summary: Get information about an uploaded file by its database ID
- *     tags: [Upload]
- *     parameters:
- *       - in: path
- *         name: id
- *         schema:
- *           type: integer
- *         required: true
- *         description: The media ID stored in the database
- *     responses:
  *       200:
- *         description: File information retrieved successfully
+ *         description: File uploaded successfully
  *         content:
  *           application/json:
  *             schema:
- *               $ref: '#/components/schemas/Media' # Assuming you have a Media schema defined
- *       400:
- *         description: Invalid media ID
- *       404:
- *         description: File not found in database
+ *               type: object
+ *               properties:
+ *                 fileKey:
+ *                   type: string
+ *                 fileUrl:
+ *                   type: string
+ *                 fileName:
+ *                   type: string
+ *                 fileSize:
+ *                   type: number
  *       500:
- *         description: Server error
+ *         description: Failed to upload file
  */
 
-// Get media file information by ID from the database
-router.get('/:id', async (req, res, next) => {
-  try {
-    const mediaId = parseInt(req.params.id);
-
-    if (isNaN(mediaId)) {
-      return res.status(400).json({ error: 'Invalid media ID' });
-    }
-
-    const media = await db.media.findUnique({
-      where: { id: mediaId }
-    });
-
-    if (!media) {
-      return res.status(404).json({ error: 'Media not found' });
-    }
-
-    // Return the media details stored in the database
-    // Note: This does not serve the file itself, just its metadata
-    res.status(200).json(media);
-  } catch (error) {
-    console.error('Error retrieving media:', error);
-    next(error);
-  }
+// Create UploadThing route handler
+const handler = createRouteHandler({
+  router: uploadRouter,
+  config: {
+    // Your UploadThing app ID from the dashboard
+    uploadthingId: process.env.UPLOADTHING_APP_ID,
+    // Your UploadThing API key
+    uploadthingSecret: process.env.UPLOADTHING_SECRET,
+  },
 });
+
+// No auth middleware
+router.get("/", handler);
+router.post("/", handler);
 
 module.exports = router;
