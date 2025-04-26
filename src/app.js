@@ -6,6 +6,9 @@ const swaggerUi = require('swagger-ui-express');
 const swaggerJsDoc = require('swagger-jsdoc');
 const cookieParser = require('cookie-parser');
 const path = require('path');
+const fileUpload = require('express-fileupload');
+const { createRouteHandler } = require('uploadthing/express');
+const { uploadRouter } = require('./utils/uploadthing');
 
 require('dotenv').config();
 
@@ -38,7 +41,8 @@ const corsOptions = {
     'Authorization', 
     'Origin', 
     'X-Requested-With', 
-    'Accept'
+    'Accept',
+    'userid'  // Added for UploadThing
   ],
   credentials: true,
   optionSuccessStatus: 200,
@@ -52,6 +56,27 @@ app.options('*', cors(corsOptions)); // Handle preflight requests globally
 app.use(express.json({ limit: '10mb' }));
 app.use(express.urlencoded({ extended: true, limit: '10mb' }));
 app.use(cookieParser());
+
+// File upload middleware
+app.use(fileUpload({
+  useTempFiles: true,
+  tempFileDir: '/tmp/',
+  limits: { fileSize: 10 * 1024 * 1024 }, // 10MB limit
+  abortOnLimit: true
+}));
+
+// UploadThing route handler
+app.use(
+  "/api/uploadthing",
+  createRouteHandler({
+    router: uploadRouter,
+    config: {
+      uploadthingId: process.env.UPLOADTHING_APP_ID,
+      uploadthingSecret: process.env.UPLOADTHING_SECRET,
+      isDev: process.env.NODE_ENV !== 'production',
+    }
+  })
+);
 
 // Serve uploaded files from 'uploads' directory
 app.use('/uploads', express.static(path.join(__dirname, '../uploads')));

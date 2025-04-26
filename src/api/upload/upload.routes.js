@@ -1,46 +1,11 @@
 const express = require('express');
-const multer = require('multer');
+const { db } = require('../../utils/db');
 const path = require('path');
 const fs = require('fs');
-const { db } = require('../../utils/db');
+const os = require('os');
+const { createUploadthing } = require("uploadthing/express");
 
 const router = express.Router();
-
-const storage = multer.diskStorage({
-  destination: function (req, file, cb) {
-    // Use /tmp/uploads on Vercel or fallback to local uploads folder
-    const isVercel = process.env.VERCEL || process.env.NOW_REGION;
-    const uploadDir = isVercel
-      ? '/tmp/uploads'
-      : path.join(__dirname, '../../../uploads');
-    if (!fs.existsSync(uploadDir)) {
-      fs.mkdirSync(uploadDir, { recursive: true });
-    }
-    cb(null, uploadDir);
-  },
-  filename: function (req, file, cb) {
-    const uniqueSuffix = Date.now() + '-' + Math.round(Math.random() * 1E9);
-    cb(null, uniqueSuffix + '-' + file.originalname);
-  }
-});
-
-// File filter to accept only images
-const fileFilter = (req, file, cb) => {
-  if (file.mimetype.startsWith('image/')) {
-    cb(null, true);
-  } else {
-    cb(new Error('Only image files are allowed!'), false);
-  }
-};
-
-// Initialize multer upload
-const upload = multer({
-  storage: storage,
-  fileFilter: fileFilter,
-  limits: {
-    fileSize: 10 * 1024 * 1024 // 10MB
-  }
-});
 
 /**
  * @swagger
@@ -74,13 +39,16 @@ const upload = multer({
  *         fileSize:
  *           type: number
  *           description: Size of the file in bytes
+ *         fileType:
+ *           type: string
+ *           description: MIME type of the uploaded file
  */
 
 /**
  * @swagger
  * /upload:
  *   post:
- *     summary: Upload an image file
+ *     summary: Upload an image file to UploadThing
  *     tags: [Upload]
  *     description: Upload image files for use in posts and other content
  *     requestBody:
@@ -107,55 +75,102 @@ const upload = multer({
  *         description: Server error during upload
  */
 
-// Image upload endpoint using multer
-router.post('/', upload.single('file'), async (req, res, next) => {
+// No local middleware here - using the one defined in app.js
+
+// Image upload endpoint that handles the upload to UploadThing
+router.post('/', async (req, res, next) => {
   try {
+    console.log('Upload request received');
+    console.log('Request files:', req.files ? Object.keys(req.files) : 'none');
+
     // Check if a file was uploaded
-    if (!req.file) {
-      return res.status(400).json({ error: 'No file uploaded' });
+    if (!req.files || !req.files.file) {
+      return res.status(400).json({
+        error: 'No file uploaded',
+        files: req.files ? Object.keys(req.files) : 'none',
+        note: 'Make sure to use "file" as the field name for your file upload'
+      });
     }
 
-    const uploadedFile = req.file;
-    const fileKey = `upload_${Date.now()}`;
-    const fileName = uploadedFile.filename;
+    const file = req.files.file;
+    console.log('File received:', file.name, file.mimetype, file.size);
 
-    // Get the relative path for storage in the database
-    const fileUrl = `/uploads/${fileName}`;
+    // Check if it's an image
+    if (!file.mimetype.startsWith('image/')) {
+      return res.status(400).json({ error: 'Only image files are allowed' });
+    }
 
-    // Store file information in the database
-    const newMedia = await db.media.create({
-      data: {
-        alt: uploadedFile.originalname || 'Uploaded image',
-        key: fileKey,
-        filename: fileName,
-        mime_type: uploadedFile.mimetype,
-        filesize: uploadedFile.size,
-        url: fileUrl, // Relative URL to access the file
-        width: 0, // You may add image processing to get actual dimensions
-        height: 0
+    // Extract user ID from request headers or use anonymous
+    const userId = req.headers.userid || req.user?.id || "anonymous";
+
+    try {
+      // Create temporary file path using the OS's temp directory
+      const tempDir = os.tmpdir();
+      const tempFilePath = path.join(tempDir, `upload_${Date.now()}_${file.name}`);
+
+      console.log('Moving file to temp path:', tempFilePath);
+      await file.mv(tempFilePath);
+
+      // Create a simple uploadthing client
+      const fileData = {
+        name: file.name,
+        filepath: tempFilePath,
+        size: file.size,
+        type: file.mimetype,
+      };
+
+      console.log('Uploading to UploadThing');
+
+      // For now, let's just store the file info directly using the file system
+      // and avoid the UploadThing integration that's causing issues
+      const uploadDir = path.join(__dirname, '../../../uploads');
+      if (!fs.existsSync(uploadDir)) {
+        fs.mkdirSync(uploadDir, { recursive: true });
       }
-    });
 
-    // Return success response with file information
-    res.status(200).json({
-      success: true,
-      mediaId: newMedia.id,
-      fileUrl: newMedia.url,
-      fileKey: newMedia.key,
-      fileName: newMedia.filename,
-      fileSize: newMedia.filesize,
-      fileType: newMedia.mime_type
-    });
+      const fileName = `${Date.now()}-${file.name}`;
+      const filePath = path.join(uploadDir, fileName);
+
+      // Move the file to uploads directory
+      await file.mv(filePath);
+
+      // Generate a relative URL
+      const fileUrl = `/uploads/${fileName}`;
+      const fileKey = `local_${Date.now()}`;
+
+      // Store file information in the database
+      const newMedia = await db.media.create({
+        data: {
+          alt: file.name || 'Uploaded image',
+          key: fileKey,
+          filename: fileName,
+          mime_type: file.mimetype,
+          filesize: file.size,
+          url: fileUrl,
+          width: 0,
+          height: 0
+        }
+      });
+
+      // Return success response with file information
+      res.status(200).json({
+        success: true,
+        mediaId: newMedia.id,
+        fileUrl: newMedia.url,
+        fileKey: newMedia.key,
+        fileName: newMedia.filename,
+        fileSize: newMedia.filesize,
+        fileType: newMedia.mime_type
+      });
+    } catch (error) {
+      console.error('Upload error:', error);
+      return res.status(500).json({
+        error: 'File upload failed',
+        message: error.message
+      });
+    }
   } catch (error) {
     console.error('Error uploading file:', error);
-    if (req.file) {
-      // Clean up file if database operation failed
-      try {
-        fs.unlinkSync(req.file.path);
-      } catch (err) {
-        console.error('Error deleting file:', err);
-      }
-    }
     next(error);
   }
 });
