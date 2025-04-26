@@ -722,7 +722,6 @@ model play_process {
   @@index([user_id_id], map: "play_process_user_id_idx")
 }
 
-
 enum enum_comment_reactions_reaction_type {
   Like
   Dislike
