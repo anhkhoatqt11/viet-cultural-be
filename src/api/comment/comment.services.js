@@ -242,6 +242,23 @@ const getCommentsByPostId = async (postId) => {
     return formattedComments;
 };
 
+/**
+ * Check if a user has liked a specific comment
+ * @param {number} commentId - The comment ID
+ * @param {number} userId - The user ID
+ * @returns {Promise<boolean>} - True if the user liked the comment, false otherwise
+ */
+const isCommentLikedByUser = async (commentId, userId) => {
+    const reaction = await CommentReaction.findFirst({
+        where: {
+            comment_id: Number(commentId),
+            user_id: Number(userId),
+            reaction_type: "Like" // Only check for Like reactions
+        }
+    });
+
+    return !!reaction; // Convert to boolean (true if reaction exists, false if not)
+};
 
 module.exports = {
     createComment,
@@ -251,4 +268,5 @@ module.exports = {
     likeComment,
     dislikeComment,
     getCommentsByPostId,
+    isCommentLikedByUser
 };

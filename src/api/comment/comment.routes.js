@@ -7,7 +7,8 @@ const {
     deleteComment,
     likeComment,
     dislikeComment,
-    getCommentsByPostId
+    getCommentsByPostId,
+    isCommentLikedByUser
 } = require('./comment.services');
 
 /**
@@ -327,5 +328,57 @@ router.get('/post/:postId', async (req, res) => {
     }
 });
 
+/**
+ * @swagger
+ * /comment/{commentId}/is-liked:
+ *   get:
+ *     tags: [Comment]
+ *     summary: Check if a user liked a comment
+ *     description: Check if a specific user has liked a specific comment
+ *     parameters:
+ *       - in: path
+ *         name: commentId
+ *         required: true
+ *         schema:
+ *           type: string
+ *         description: The ID of the comment
+ *       - in: query
+ *         name: userId
+ *         required: true
+ *         schema:
+ *           type: string
+ *         description: The ID of the user
+ *     responses:
+ *       200:
+ *         description: Successfully checked like status
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 liked:
+ *                   type: boolean
+ *                   description: Whether the user liked the comment
+ *       400:
+ *         description: Missing required parameters
+ *       500:
+ *         description: Internal server error
+ */
+router.get('/:commentId/is-liked', async (req, res) => {
+    try {
+        const { commentId } = req.params;
+        const { userId } = req.query;
+
+        if (!userId) {
+            return res.status(400).json({ error: 'Missing required query parameter: userId' });
+        }
+
+        const liked = await isCommentLikedByUser(commentId, userId);
+        res.status(200).json({ liked });
+    } catch (error) {
+        console.error('Error checking comment like status:', error);
+        res.status(500).json({ error: 'Internal server error' });
+    }
+});
 
 module.exports = router;
