@@ -6,10 +6,13 @@ const { db } = require('../../utils/db');
 
 const router = express.Router();
 
-// Configure multer disk storage
 const storage = multer.diskStorage({
   destination: function (req, file, cb) {
-    const uploadDir = path.join(__dirname, '../../../uploads');
+    // Use /tmp/uploads on Vercel or fallback to local uploads folder
+    const isVercel = process.env.VERCEL || process.env.NOW_REGION;
+    const uploadDir = isVercel
+      ? '/tmp/uploads'
+      : path.join(__dirname, '../../../uploads');
     if (!fs.existsSync(uploadDir)) {
       fs.mkdirSync(uploadDir, { recursive: true });
     }
@@ -31,7 +34,7 @@ const fileFilter = (req, file, cb) => {
 };
 
 // Initialize multer upload
-const upload = multer({ 
+const upload = multer({
   storage: storage,
   fileFilter: fileFilter,
   limits: {
@@ -115,10 +118,10 @@ router.post('/', upload.single('file'), async (req, res, next) => {
     const uploadedFile = req.file;
     const fileKey = `upload_${Date.now()}`;
     const fileName = uploadedFile.filename;
-    
+
     // Get the relative path for storage in the database
     const fileUrl = `/uploads/${fileName}`;
-    
+
     // Store file information in the database
     const newMedia = await db.media.create({
       data: {
@@ -183,19 +186,19 @@ router.post('/', upload.single('file'), async (req, res, next) => {
 router.get('/:id', async (req, res, next) => {
   try {
     const mediaId = parseInt(req.params.id);
-    
+
     if (isNaN(mediaId)) {
       return res.status(400).json({ error: 'Invalid media ID' });
     }
-    
+
     const media = await db.media.findUnique({
       where: { id: mediaId }
     });
-    
+
     if (!media) {
       return res.status(404).json({ error: 'Media not found' });
     }
-    
+
     res.status(200).json(media);
   } catch (error) {
     console.error('Error retrieving media:', error);
