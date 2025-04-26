@@ -109,32 +109,104 @@ async function getPostById(id) {
     };
 }
 
-async function getAllPosts() {
+async function getAllPosts(options = {}) {
+    // Extract pagination and search parameters with defaults
+    const {
+        page = 1,
+        limit = 10,
+        search = '',
+        sortBy = 'created_at',
+        sortOrder = 'desc'
+    } = options;
+
+    // Calculate pagination values
+    const skip = (page - 1) * limit;
+    const take = parseInt(limit);
+
+    // Build where conditions for searching in title and question fields
+    const whereCondition = search
+        ? {
+            OR: [
+                { title: { contains: search, mode: 'insensitive' } },
+                { question: { contains: search, mode: 'insensitive' } }
+            ]
+        }
+        : {};
+
+    // Get total count for pagination
+    const totalCount = await db.posts.count({ where: whereCondition });
+    
+    // Get posts with pagination
     const posts = await db.posts.findMany({
+        where: whereCondition,
+        skip,
+        take,
         include: {
             media: true,
             user: true,
-            posts_rels: true
+            posts_rels: true,
+            comments: {
+                take: 3, // Get only the 3 most recent comments for preview
+                orderBy: { created_at: 'desc' },
+                include: { user: true }
+            },
+            _count: {
+                select: { comments: true }
+            }
         },
+        orderBy: {
+            [sortBy]: sortOrder
+        }
     });
 
-    return posts.map(post => {
+    // Format the response data
+    const formattedPosts = posts.map(post => {
         // Count likes (posts_rels with path='likedBy')
         const likeCount = post.posts_rels.filter(rel => rel.path === 'likedBy').length;
 
+        // Format comments for preview
+        const formattedComments = post.comments.map(comment => ({
+            id: comment.id,
+            content: comment.content,
+            likes: comment.likes,
+            dislikes: comment.dislikes,
+            created_at: comment.created_at,
+            user: comment.user ? {
+                id: comment.user.id,
+                full_name: comment.user.full_name,
+                avatar_url: comment.user.avatar_url,
+                avatarUrl: comment.user.avatar ? `${IMAGE_BASE_URL}${comment.user.avatar}` : null
+            } : null
+        }));
+
         return {
-            ...post,
+            id: post.id,
+            title: post.title,
+            question: post.question,
+            created_at: post.created_at,
+            updated_at: post.updated_at,
             imageUrl: post.media && post.media.key ? `${IMAGE_BASE_URL}${post.media.key}` : null,
             user: post.user ? {
                 id: post.user.id,
                 full_name: post.user.full_name,
                 avatar_url: post.user.avatar_url,
                 avatarUrl: post.user.avatar ? `${IMAGE_BASE_URL}${post.user.avatar}` : null
-                // Only include non-confidential fields
             } : null,
-            likeCount
+            likeCount,
+            commentCount: post._count.comments,
+            comments: formattedComments
         };
     });
+
+    return {
+        posts: formattedPosts,
+        pagination: {
+            total: totalCount,
+            page: parseInt(page),
+            limit: parseInt(limit),
+            totalPages: Math.ceil(totalCount / limit)
+        }
+    };
 }
 
 async function commentPost(postId, comment) {

@@ -64,12 +64,64 @@ const { createPost, getPostById, getAllPosts, commentPost,likePost, isPostLikedB
  * @swagger
  * /post/get-all-posts:
  *   get:
- *     summary: Get all posts
+ *     summary: Get all posts with pagination and search
  *     tags:
  *       - Posts
+ *     parameters:
+ *       - in: query
+ *         name: page
+ *         schema:
+ *           type: integer
+ *           default: 1
+ *         description: Page number for pagination
+ *       - in: query
+ *         name: limit
+ *         schema:
+ *           type: integer
+ *           default: 10
+ *         description: Number of posts per page
+ *       - in: query
+ *         name: search
+ *         schema:
+ *           type: string
+ *         description: Search term for filtering posts by title or content
+ *       - in: query
+ *         name: sortBy
+ *         schema:
+ *           type: string
+ *           enum: [created_at, title]
+ *           default: created_at
+ *         description: Field to sort posts by
+ *       - in: query
+ *         name: sortOrder
+ *         schema:
+ *           type: string
+ *           enum: [asc, desc]
+ *           default: desc
+ *         description: Sort order (ascending or descending)
  *     responses:
  *       200:
- *         description: Posts retrieved successfully
+ *         description: Posts retrieved successfully with pagination data
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 posts:
+ *                   type: array
+ *                   items:
+ *                     type: object
+ *                 pagination:
+ *                   type: object
+ *                   properties:
+ *                     total:
+ *                       type: integer
+ *                     page:
+ *                       type: integer
+ *                     limit:
+ *                       type: integer
+ *                     totalPages:
+ *                       type: integer
  *       500:
  *         description: Internal server error
  */
@@ -100,10 +152,19 @@ router.get('/get-post', async (req, res, next) => {
 
 router.get('/get-all-posts', async (req, res, next) => {
     try {
-        // Assuming you have a function to get posts by user ID
-        const posts = await getAllPosts();
-        res.json(posts);
+        const { page, limit, search, sortBy, sortOrder } = req.query;
+        const options = {
+            page: parseInt(page) || 1,
+            limit: parseInt(limit) || 10,
+            search: search || '',
+            sortBy: sortBy || 'created_at',
+            sortOrder: sortOrder || 'desc'
+        };
+
+        const result = await getAllPosts(options);
+        res.json(result);
     } catch (err) {
+        console.error('Error fetching posts:', err);
         next(err);
     }
 });
