@@ -1,13 +1,34 @@
 const { db } = require('../../utils/db');
 
 const IMAGE_BASE_URL = 'https://qauff8c31y.ufs.sh/f/';
+const UPLOADTHING_BASE_URL = 'https://uploadthing.com/f/';
 
 async function createPost(post) {
-    // Extract userId and tags if provided
-    const { userId, tags, ...postData } = post;
+    // Extract userId, tags, and image data if provided
+    const { userId, tags, image, ...postData } = post;
 
     // Create transaction to ensure post and tag relations are created atomically
     return await db.$transaction(async (tx) => {
+        // Check if we have image info but not image_id
+        let imageId = post.image_id;
+        
+        // If image data is provided but no image_id, create a media record first
+        if (image && !imageId) {
+            // Create a new media entry with the data from UploadThing
+            const newMedia = await tx.media.create({
+                data: {
+                    alt: image.fileName || 'Post image',
+                    key: image.fileKey,
+                    url: image.fileUrl,
+                    filename: image.fileName || `upload-${Date.now()}`,
+                    mime_type: image.fileType || 'image/jpeg',
+                    filesize: image.fileSize || 0,
+                }
+            });
+            
+            imageId = newMedia.id;
+        }
+
         // Create the post first
         const createdPost = await tx.posts.create({
             data: {
@@ -15,7 +36,7 @@ async function createPost(post) {
                 // Map userId to user_id_id
                 user_id_id: userId ? Number(userId) : undefined,
                 // If an image_id is provided as string, convert to number
-                image_id: post.image_id ? Number(post.image_id) : undefined
+                image_id: imageId ? Number(imageId) : undefined
             },
             include: {
                 media: true,
@@ -51,15 +72,30 @@ async function createPost(post) {
             }
         });
 
-        // Format the response
+        // Format the image URL based on the source (UploadThing or existing storage)
+        let imageUrl = null;
+        if (postWithTags.media) {
+            if (postWithTags.media.url) {
+                // If a full URL is stored, use it directly
+                imageUrl = postWithTags.media.url;
+            } else if (postWithTags.media.key) {
+                // Otherwise construct URL based on key format
+                if (postWithTags.media.key.startsWith('ut_')) {
+                    imageUrl = `${UPLOADTHING_BASE_URL}${postWithTags.media.key}`;
+                } else {
+                    imageUrl = `${IMAGE_BASE_URL}${postWithTags.media.key}`;
+                }
+            }
+        }
+
         return {
             ...postWithTags,
-            imageUrl: postWithTags.media && postWithTags.media.key ?
-                `${IMAGE_BASE_URL}${postWithTags.media.key}` : null,
+            imageUrl,
             user: postWithTags.user ? {
                 id: postWithTags.user.id,
                 full_name: postWithTags.user.full_name,
                 avatar_url: postWithTags.user.avatar_url,
+                // Handle user avatar URL similarly
                 avatarUrl: postWithTags.user.avatar ?
                     `${IMAGE_BASE_URL}${postWithTags.user.avatar}` : null
             } : null,
@@ -67,6 +103,8 @@ async function createPost(post) {
         };
     });
 }
+
+// Update getPostById to handle UploadThing URLs
 async function getPostById(id) {
     id = Number(id);
 
@@ -95,9 +133,20 @@ async function getPostById(id) {
         }
     });
 
+    // Format the image URL based on whether it's an UploadThing URL or older URL format
+    const mediaUrl = post.media ? 
+        (post.media.url ? 
+            post.media.url : 
+            (post.media.key ? 
+                (post.media.key.startsWith('ut_') ? 
+                    `${UPLOADTHING_BASE_URL}${post.media.key}` : 
+                    `${IMAGE_BASE_URL}${post.media.key}`) : 
+                null)) : 
+        null;
+
     return {
         ...post,
-        imageUrl: post.media && post.media.key ? `${IMAGE_BASE_URL}${post.media.key}` : null,
+        imageUrl: mediaUrl,
         user: post.user ? {
             id: post.user.id,
             full_name: post.user.full_name,
@@ -109,6 +158,7 @@ async function getPostById(id) {
     };
 }
 
+// Update getAllPosts to handle UploadThing URLs
 async function getAllPosts(options = {}) {
     // Extract pagination and search parameters with defaults
     const {
@@ -179,13 +229,24 @@ async function getAllPosts(options = {}) {
             } : null
         }));
 
+        // Format the image URL based on whether it's an UploadThing URL or older URL format
+        const mediaUrl = post.media ? 
+            (post.media.url ? 
+                post.media.url : 
+                (post.media.key ? 
+                    (post.media.key.startsWith('ut_') ? 
+                        `${UPLOADTHING_BASE_URL}${post.media.key}` : 
+                        `${IMAGE_BASE_URL}${post.media.key}`) : 
+                    null)) : 
+            null;
+
         return {
             id: post.id,
             title: post.title,
             question: post.question,
             created_at: post.created_at,
             updated_at: post.updated_at,
-            imageUrl: post.media && post.media.key ? `${IMAGE_BASE_URL}${post.media.key}` : null,
+            imageUrl: mediaUrl,
             user: post.user ? {
                 id: post.user.id,
                 full_name: post.user.full_name,
@@ -362,9 +423,6 @@ async function getLikesByPostId(postId) {
         } : null
     }));
 }
-
-
-
 
 module.exports = {
     createPost,

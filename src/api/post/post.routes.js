@@ -2,15 +2,88 @@ const express = require('express');
 const router = express.Router();
 
 
-const { createPost, getPostById, getAllPosts, commentPost,likePost, isPostLikedByUser, getLikesByPostId  } = require('./post.services');
+const { createPost, getPostById, getAllPosts, commentPost, likePost, isPostLikedByUser, getLikesByPostId } = require('./post.services');
+
+/**
+ * @swagger
+ * components:
+ *   schemas:
+ *     ImageData:
+ *       type: object
+ *       properties:
+ *         fileKey:
+ *           type: string
+ *           description: The key of the uploaded file from UploadThing
+ *         fileUrl:
+ *           type: string
+ *           description: The URL of the uploaded image
+ *         fileName:
+ *           type: string
+ *           description: The name of the uploaded file
+ *         fileSize:
+ *           type: number
+ *           description: The size of the file in bytes
+ *         fileType:
+ *           type: string
+ *           description: The MIME type of the file
+ */
+
+/**
+ * @swagger
+ * tags:
+ *   - name: Upload
+ *     description: File upload operations
+ *   - name: Posts
+ *     description: Post management operations
+ */
+
+/**
+ * @swagger
+ * /upload:
+ *   post:
+ *     summary: Upload an image using UploadThing
+ *     tags:
+ *       - Upload
+ *     description: Uploads image files to UploadThing for use in posts
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         multipart/form-data:
+ *           schema:
+ *             type: object
+ *             properties:
+ *               file:
+ *                 type: string
+ *                 format: binary
+ *                 description: The image file to upload
+ *     responses:
+ *       200:
+ *         description: File uploaded successfully
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 fileKey:
+ *                   type: string
+ *                 fileUrl:
+ *                   type: string
+ *                 fileName:
+ *                   type: string
+ *                 fileSize:
+ *                   type: number
+ *       500:
+ *         description: Failed to upload file
+ */
 
 /**
  * @swagger
  * /post/create-post:
  *   post:
- *     summary: Create a new post
+ *     summary: Create a new post with optional image
  *     tags:
  *       - Posts
+ *     description: Creates a new post with text content and optionally an image uploaded via UploadThing
  *     requestBody:
  *       required: true
  *       content:
@@ -18,21 +91,59 @@ const { createPost, getPostById, getAllPosts, commentPost,likePost, isPostLikedB
  *           schema:
  *             type: object
  *             properties:
- *               user_id_id:
+ *               userId:
  *                 type: number
+ *                 description: ID of the user creating the post
  *               title:
  *                 type: string
+ *                 description: Title of the post
  *               question:
  *                 type: string
- *               media:
- *                 type: string
+ *                 description: Main content or question of the post
+ *               image_id:
+ *                 type: number
+ *                 description: ID of the pre-uploaded image (obtained from upload/save-media endpoint)
+ *               image:
+ *                 $ref: '#/components/schemas/ImageData'
+ *                 description: Direct image data from UploadThing (alternative to image_id)
  *               tags:
  *                 type: array
  *                 items:
- *                   type: string
+ *                   type: number
+ *                 description: Array of tag IDs to associate with the post
  *     responses:
  *       201:
  *         description: Post created successfully
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 id:
+ *                   type: number
+ *                 title:
+ *                   type: string
+ *                 question:
+ *                   type: string
+ *                 imageUrl:
+ *                   type: string
+ *                   description: Full URL to the image
+ *                 created_at:
+ *                   type: string
+ *                   format: date-time
+ *                 user:
+ *                   type: object
+ *                   properties:
+ *                     id:
+ *                       type: number
+ *                     full_name:
+ *                       type: string
+ *                 tags:
+ *                   type: array
+ *                   items:
+ *                     type: object
+ *       400:
+ *         description: Bad request - missing required fields
  *       500:
  *         description: Internal server error
  */

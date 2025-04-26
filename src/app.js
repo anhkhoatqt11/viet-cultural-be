@@ -5,7 +5,7 @@ const cors = require('cors');
 const swaggerUi = require('swagger-ui-express');
 const swaggerJsDoc = require('swagger-jsdoc');
 const cookieParser = require('cookie-parser');
-
+const path = require('path');
 
 require('dotenv').config();
 
@@ -22,34 +22,41 @@ app.use(
         defaultSrc: ["'self'"],
         scriptSrc: ["'self'", "https://cdnjs.cloudflare.com"],
         connectSrc: ["*"],  // Allow all connection sources
-        imgSrc: ["'self'", "data:"],
+        imgSrc: ["'self'", "data:", "*"],
         styleSrc: ["'self'", "'unsafe-inline'"]
       }
     }
   })
 );
+
+// CORS configuration
 const corsOptions = {
-  origin: ['http://localhost:5173'],
-  methods: ['GET', 'POST', 'PUT', 'DELETE', 'PATCH'],
-  allowedHeaders: ['Content-Type', 'Authorization', 'Origin', 'X-Requested-With', 'Accept'],
-  credentials: true,            //access-control-allow-credentials:true
+  origin: [process.env.FRONTEND_URL || 'http://localhost:5173'],
+  methods: ['GET', 'POST', 'PUT', 'DELETE', 'PATCH', 'OPTIONS'],
+  allowedHeaders: [
+    'Content-Type', 
+    'Authorization', 
+    'Origin', 
+    'X-Requested-With', 
+    'Accept'
+  ],
+  credentials: true,
   optionSuccessStatus: 200,
+  maxAge: 86400 // 24 hours
 }
+
 app.use(cors(corsOptions));
 app.options('*', cors(corsOptions)); // Handle preflight requests globally
-app.use(express.json());
+
+// Body parsers
+app.use(express.json({ limit: '10mb' }));
+app.use(express.urlencoded({ extended: true, limit: '10mb' }));
 app.use(cookieParser());
 
+// Serve uploaded files from 'uploads' directory
+app.use('/uploads', express.static(path.join(__dirname, '../uploads')));
 
-
-// app.use((req, res, next) => {
-//   res.header('Access-Control-Allow-Origin', '*');
-//   res.header('Access-Control-Allow-Methods', 'GET, POST, PUT, DELETE, OPTIONS');
-//   res.header('Access-Control-Allow-Headers', 'Content-Type, Authorization');
-//   next();
-// });
-
-
+// Swagger configuration
 const swaggerOptions = {
   definition: {
     openapi: '3.0.0',
@@ -83,20 +90,16 @@ const swaggerOptions = {
   apis: ['./src/api/**/*.js'],
 };
 
-
 swaggerOptions.definition.servers.push({
   url: 'http://localhost:5000/api/v1',
   description: 'Localhost',
 });
-
 
 const swaggerDocs = swaggerJsDoc(swaggerOptions);
 app.use('/api-docs', swaggerUi.serve, swaggerUi.setup(swaggerDocs));
 app.use("/api-docs/swagger-ui-bundle.js", express.static(require.resolve("swagger-ui-dist/swagger-ui-bundle.js")));
 app.use("/api-docs/swagger-ui-standalone-preset.js", express.static(require.resolve("swagger-ui-dist/swagger-ui-standalone-preset.js")));
 app.use("/api-docs/swagger-ui.css", express.static(require.resolve("swagger-ui-dist/swagger-ui.css")));
-
-
 
 app.get('/', (req, res) => {
   res.json({
