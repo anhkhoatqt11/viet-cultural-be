@@ -2,6 +2,25 @@ const { db } = require('../../utils/db')
 
 const IMAGE_BASE_URL = 'https://qauff8c31y.ufs.sh/f/';
 
+function getBadge(regionId) {
+    switch (regionId) {
+        case 1:
+            return 107
+        case 2: 
+            return 106
+        case 3:
+            return 109
+        case 4: 
+            return 108
+        case 6:
+            return 110
+        case 7:
+            return 111
+        default:
+            break;
+    }
+}
+
 async function createAchievement(data) { 
     return await db.achievements.create({
         data: {
@@ -22,6 +41,7 @@ async function createAchievementForAllRegions(userId) {
         name: region.region_name,
         description: `Default achievement for region ${region.region_name}`,
         stars: 0,
+        badge_id: getBadge(region.id),
         history: false,
         intangible_heritage: false,
         tangible_heritage: false
@@ -50,6 +70,9 @@ async function getAchievementById(userId, regionId) {
         where: {
             user_id_id: userId,
             region_id_id: regionId,
+        },
+        include: {
+            media: true
         }
     })
 
@@ -60,11 +83,19 @@ async function getAchievementById(userId, regionId) {
 }
 
 async function getAchievementByUserId(userId) {
-    return await db.achievements.findMany({
+    const achievements = await db.achievements.findMany({
         where: {
             user_id_id: userId
+        },
+        include: {
+            media: true
         }
     })
+
+    return achievements.map((achievement) => ({
+        ...achievement,
+        imageUrl: achievement.media && achievement.media.key ? `${IMAGE_BASE_URL}${achievement.media.key}` : null,
+    }))
 }
 
 async function updateAchievement(userId, regionId, updateData) {
