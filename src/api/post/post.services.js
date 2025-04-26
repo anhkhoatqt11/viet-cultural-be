@@ -229,14 +229,6 @@ async function getAllPosts(options = {}) {
             // Count likes from comments_rels
             const commentLikes = comment.comments_rels ? comment.comments_rels.length : 0;
 
-            const tags = post.posts_rels
-                .filter(rel => rel.path === 'tags' && rel.tags)
-                .map(rel => ({
-                    id: rel.tags.id,
-                    name: rel.tags.name
-                }));
-
-
             return {
                 id: comment.id,
                 content: comment.content,
@@ -247,7 +239,7 @@ async function getAllPosts(options = {}) {
                     full_name: comment.user.full_name,
                     avatar_url: comment.user.avatar_url,
                     avatarUrl: comment.user.avatar ? `${IMAGE_BASE_URL}${comment.user.avatar}` : null
-                } : null
+                } : null,
             };
         });
 
@@ -261,6 +253,14 @@ async function getAllPosts(options = {}) {
                         `${IMAGE_BASE_URL}${post.media.key}`) :
                     null)) :
             null;
+
+
+        const tags = post.posts_rels
+            .filter(rel => rel.path === 'tags' && rel.tags)
+            .map(rel => ({
+                id: rel.tags.id,
+                name: rel.tags.name
+            }));
 
         return {
             id: post.id,
@@ -281,6 +281,8 @@ async function getAllPosts(options = {}) {
             tags
         };
     });
+
+
 
     return {
         posts: formattedPosts,
