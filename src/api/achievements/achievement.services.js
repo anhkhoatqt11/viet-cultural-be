@@ -13,6 +13,25 @@ async function createAchievement(data) {
     })
 }
 
+async function createAchievementForAllRegions(userId) {
+    const regions = await db.regions.findMany()
+
+    const achievements = regions.map(region => ({
+        user_id_id: userId,
+        region_id_id: region.id,
+        name: region.region_name,
+        description: `Default achievement for region ${region.region_name}`,
+        stars: 0,
+        history: false,
+        intangible_heritage: false,
+        tangible_heritage: false
+    }))
+
+    return await db.achievements.createMany({
+        data: achievements
+    })
+}
+
 async function getAllAchievements() {
     const achievements = await db.achievements.findMany({
         include: {
@@ -38,6 +57,14 @@ async function getAchievementById(userId, regionId) {
         ...achievement,
         imageUrl: achievement.media && achievement.media.key ? `${IMAGE_BASE_URL}${achievement.media.key}` : null,
     }
+}
+
+async function getAchievementByUserId(userId) {
+    return await db.achievements.findMany({
+        where: {
+            user_id_id: userId
+        }
+    })
 }
 
 async function updateAchievement(userId, regionId, updateData) {
@@ -96,6 +123,8 @@ module.exports = {
     createAchievement,
     getAllAchievements,
     getAchievementById,
+    getAchievementByUserId,
     updateAchievement,
-    deleteAchievement
+    deleteAchievement,
+    createAchievementForAllRegions
 }

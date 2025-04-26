@@ -1,5 +1,5 @@
 const express = require('express')
-const { getAllAchievements, getAchievementById, createAchievement, updateAchievement, deleteAchievement } = require('./achievement.services')
+const { getAllAchievements, getAchievementById, createAchievement, updateAchievement, deleteAchievement, createAchievementForAllRegions, getAchievementByUserId } = require('./achievement.services')
 const router = express.Router()
 const jwt = require('jsonwebtoken')
 /**
@@ -51,6 +51,26 @@ const jwt = require('jsonwebtoken')
 
 /**
  * @swagger
+ * /achievements/get-achievement-user-id:
+ *   get:
+ *     tags: [Achievements]
+ *     summary: Get all achievements
+ *     description: Retrieve a list of all achievements of user.
+ *     responses:
+ *       200:
+ *         description: Successfully retrieved all achievements of user
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: array
+ *               items:
+ *                 type: object
+ *       500:
+ *         description: Internal server error
+ */
+
+/**
+ * @swagger
  * /achievements/create-achievement:
  *   post:
  *     tags: [Achievements]
@@ -79,6 +99,24 @@ const jwt = require('jsonwebtoken')
  *                 type: string
  *                 description: A description of the achievement
  *                 example: "This is an achievement description."
+ *     responses:
+ *       201:
+ *         description: Achievement created successfully
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *       500:
+ *         description: Internal server error
+ */
+
+/**
+ * @swagger
+ * /achievements/create-achievement-all:
+ *   post:
+ *     tags: [Achievements]
+ *     summary: Create a new achievement
+ *     description: Create a new achievement for a user and region.
  *     responses:
  *       201:
  *         description: Achievement created successfully
@@ -186,11 +224,48 @@ router.get('/get-achievement/:regionId', async (req, res, next) => {
     }
 })
 
+router.get('/get-achievement-user-id', async (req, res, next) => {
+    try {
+        const token = req.cookies?.token;
+            if (!token) {
+              return res.status(401).json({ message: 'No token provided' });
+            }
+        
+            // Decode the token to get userId (assuming JWT and userId is in payload)
+            const decoded = jwt.verify(token, process.env.JWT_ACCESS_SECRET);
+            const userId = decoded.userId;
+        const posts = await getAchievementByUserId(parseInt(userId))
+        res.json(posts)
+    } catch (error) {
+        next(error)
+    }
+})
+
 router.post('/create-achievement', async (req, res, next) => {
     try {
         res.status(201).json({
             message: "Đã tạo achievement",
             metadata: await createAchievement(req.body)
+        })
+    } catch (error) {
+        next(error)
+    }
+})
+
+router.post('/create-achievement-all', async (req, res, next) => {
+    try {
+            const token = req.cookies?.token;
+            if (!token) {
+            return res.status(401).json({ message: 'No token provided' });
+            }
+        
+            // Decode the token to get userId (assuming JWT and userId is in payload)
+            const decoded = jwt.verify(token, process.env.JWT_ACCESS_SECRET);
+            const userId = decoded.userId;
+
+        res.status(201).json({
+            message: "Đã tạo achievement",
+            metadata: await createAchievementForAllRegions(userId)
         })
     } catch (error) {
         next(error)

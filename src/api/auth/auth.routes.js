@@ -19,6 +19,7 @@ const {
 const { db } = require('../../utils/db');
 const { isAuthenticated } = require('../../middlewares');
 const jwt = require('jsonwebtoken');
+const { createAchievementForAllRegions } = require('../achievements/achievement.services');
 
 
 
@@ -96,6 +97,8 @@ router.post('/register', async (req, res, next) => {
       sameSite: "None",      // Localhost thì "Lax", Production thì "None"
       maxAge: 7 * 24 * 60 * 60 * 1000,
     });
+
+    await createAchievementForAllRegions(parseInt(user.id))
 
     res.json({ accessToken, refreshToken });
   } catch (err) {
