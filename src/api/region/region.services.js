@@ -43,7 +43,7 @@ async function findRegionById(id) {
         ];
         return {
             ...region,
-            game: [...new Set(gameTypeIds)], // Ensure unique gameType IDs
+            game: [...new Set(gameTypeIds)].sort((a, b) => a - b), // Ensure unique and sorted gameType IDs
         };
     }
     return null;

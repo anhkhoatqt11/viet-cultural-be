@@ -1,5 +1,7 @@
 const express = require('express');
 const router = express.Router();
+const jwt = require('jsonwebtoken');
+const bcrypt = require('bcrypt');
 
 
 const { createPost, getPostById, getAllPosts, commentPost, likePost, isPostLikedByUser, getLikesByPostId, getPostsByUserId } = require('./post.services');
@@ -425,12 +427,6 @@ router.get('/:postId/likes', async (req, res) => {
  *       - Posts
  *     parameters:
  *       - in: query
- *         name: userId
- *         schema:
- *           type: number
- *         required: true
- *         description: ID of the user whose posts to fetch
- *       - in: query
  *         name: page
  *         schema:
  *           type: integer
@@ -491,7 +487,15 @@ router.get('/:postId/likes', async (req, res) => {
  */
 router.get('/get-posts-by-user', async (req, res) => {
     try {
-        const { userId, page, limit, search, sortBy, sortOrder } = req.query;
+        const { page, limit, search, sortBy, sortOrder } = req.query;
+        const token = req.cookies?.token;
+        if (!token) {
+            return res.status(401).json({ message: 'No token provided' });
+        }
+
+        // Decode the token to get userId (assuming JWT and userId is in payload)
+        const decoded = jwt.verify(token, process.env.JWT_ACCESS_SECRET);
+        const userId = decoded.userId;
         if (!userId) {
             return res.status(400).json({ error: 'Missing required parameter: userId' });
         }
