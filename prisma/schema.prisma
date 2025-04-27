@@ -79,11 +79,13 @@ model payload_locked_documents_rels {
   play_process_id          Int?
   knowledge_post_id        Int?
   knowledge_section_id     Int?
+  feedback_id              Int?
   achievements             achievements?            @relation(fields: [achievements_id], references: [id], onDelete: Cascade, onUpdate: NoAction, map: "payload_locked_documents_rels_achievements_fk")
   after_question_info      after_question_info?     @relation(fields: [after_question_info_id], references: [id], onDelete: Cascade, onUpdate: NoAction, map: "payload_locked_documents_rels_after_question_info_fk")
   comment_reactions        comment_reactions?       @relation(fields: [comment_reactions_id], references: [id], onDelete: Cascade, onUpdate: NoAction, map: "payload_locked_documents_rels_comment_reactions_fk")
   comments                 comments?                @relation(fields: [comments_id], references: [id], onDelete: Cascade, onUpdate: NoAction, map: "payload_locked_documents_rels_comments_fk")
   email_verifications      email_verifications?     @relation(fields: [email_verifications_id], references: [id], onDelete: Cascade, onUpdate: NoAction, map: "payload_locked_documents_rels_email_verifications_fk")
+  feedback                 feedback?                @relation(fields: [feedback_id], references: [id], onDelete: Cascade, onUpdate: NoAction, map: "payload_locked_documents_rels_feedback_fk")
   game_types               game_types?              @relation(fields: [game_types_id], references: [id], onDelete: Cascade, onUpdate: NoAction, map: "payload_locked_documents_rels_game_types_fk")
   information_slides       information_slides?      @relation(fields: [information_slides_id], references: [id], onDelete: Cascade, onUpdate: NoAction, map: "payload_locked_documents_rels_information_slides_fk")
   knowledge_post           knowledge_post?          @relation(fields: [knowledge_post_id], references: [id], onDelete: Cascade, onUpdate: NoAction, map: "payload_locked_documents_rels_knowledge_post_fk")
@@ -136,6 +138,7 @@ model payload_locked_documents_rels {
   @@index([knowledge_post_id])
   @@index([play_process_id])
   @@index([knowledge_section_id])
+  @@index([feedback_id])
 }
 
 model payload_migrations {
@@ -608,6 +611,7 @@ model user {
   comments                      comments[]
   comments_rels                 comments_rels[]
   email_verifications           email_verifications[]
+  feedback                      feedback[]
   password_resets               password_resets[]
   payload_locked_documents_rels payload_locked_documents_rels[]
   payload_preferences_rels      payload_preferences_rels[]
@@ -767,6 +771,21 @@ model knowledge_section_items {
   @@index([image_id], map: "knowledge_section_items_image_idx")
   @@index([order], map: "knowledge_section_items_order_idx")
   @@index([parent_id], map: "knowledge_section_items_parent_id_idx")
+}
+
+model feedback {
+  id                            Int                             @id @default(autoincrement())
+  user_id_id                    Int?
+  title                         String?                         @db.VarChar
+  content                       String?                         @db.VarChar
+  updated_at                    DateTime                        @default(now()) @db.Timestamptz(3)
+  created_at                    DateTime                        @default(now()) @db.Timestamptz(3)
+  user                          user?                           @relation(fields: [user_id_id], references: [id], onUpdate: NoAction, map: "feedback_user_id_id_user_id_fk")
+  payload_locked_documents_rels payload_locked_documents_rels[]
+
+  @@index([created_at])
+  @@index([updated_at])
+  @@index([user_id_id], map: "feedback_user_id_idx")
 }
 
 enum enum_comment_reactions_reaction_type {

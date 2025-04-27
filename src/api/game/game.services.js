@@ -91,7 +91,8 @@ async function getGameData(regionId, gameType) {
                 answers: game.puzzle_games_answer.map((answer) => ({
                     id: answer.id,
                     index: answer.index
-                }))
+                })),
+                answer_text: game.answer_text
             }));
 
         case 'treasure':
