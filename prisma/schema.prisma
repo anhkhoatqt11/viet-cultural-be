@@ -24,6 +24,7 @@ model media {
   focal_y                       Decimal?                        @db.Decimal
   achievements                  achievements[]
   knowledge_post                knowledge_post[]
+  knowledge_section_items       knowledge_section_items[]
   media_links_rels              media_links_rels[]
   payload_locked_documents_rels payload_locked_documents_rels[]
   posts                         posts[]
@@ -77,6 +78,7 @@ model payload_locked_documents_rels {
   user_id                  Int?
   play_process_id          Int?
   knowledge_post_id        Int?
+  knowledge_section_id     Int?
   achievements             achievements?            @relation(fields: [achievements_id], references: [id], onDelete: Cascade, onUpdate: NoAction, map: "payload_locked_documents_rels_achievements_fk")
   after_question_info      after_question_info?     @relation(fields: [after_question_info_id], references: [id], onDelete: Cascade, onUpdate: NoAction, map: "payload_locked_documents_rels_after_question_info_fk")
   comment_reactions        comment_reactions?       @relation(fields: [comment_reactions_id], references: [id], onDelete: Cascade, onUpdate: NoAction, map: "payload_locked_documents_rels_comment_reactions_fk")
@@ -85,6 +87,7 @@ model payload_locked_documents_rels {
   game_types               game_types?              @relation(fields: [game_types_id], references: [id], onDelete: Cascade, onUpdate: NoAction, map: "payload_locked_documents_rels_game_types_fk")
   information_slides       information_slides?      @relation(fields: [information_slides_id], references: [id], onDelete: Cascade, onUpdate: NoAction, map: "payload_locked_documents_rels_information_slides_fk")
   knowledge_post           knowledge_post?          @relation(fields: [knowledge_post_id], references: [id], onDelete: Cascade, onUpdate: NoAction, map: "payload_locked_documents_rels_knowledge_post_fk")
+  knowledge_section        knowledge_section?       @relation(fields: [knowledge_section_id], references: [id], onDelete: Cascade, onUpdate: NoAction, map: "payload_locked_documents_rels_knowledge_section_fk")
   media                    media?                   @relation(fields: [media_id], references: [id], onDelete: Cascade, onUpdate: NoAction, map: "payload_locked_documents_rels_media_fk")
   media_links              media_links?             @relation(fields: [media_links_id], references: [id], onDelete: Cascade, onUpdate: NoAction, map: "payload_locked_documents_rels_media_links_fk")
   payload_locked_documents payload_locked_documents @relation(fields: [parent_id], references: [id], onDelete: Cascade, onUpdate: NoAction, map: "payload_locked_documents_rels_parent_fk")
@@ -132,6 +135,7 @@ model payload_locked_documents_rels {
   @@index([word_games_id])
   @@index([knowledge_post_id])
   @@index([play_process_id])
+  @@index([knowledge_section_id])
 }
 
 model payload_migrations {
@@ -422,6 +426,7 @@ model puzzle_games {
   image_id                      Int
   updated_at                    DateTime                        @default(now()) @db.Timestamptz(3)
   created_at                    DateTime                        @default(now()) @db.Timestamptz(3)
+  answer_text                   String?                         @db.VarChar
   after_question_info           after_question_info[]
   payload_locked_documents_rels payload_locked_documents_rels[]
   game_types                    game_types?                     @relation(fields: [gametype_id], references: [id], onUpdate: NoAction, map: "puzzle_games_gametype_id_game_types_id_fk")
@@ -736,6 +741,33 @@ model comments_rels {
   @@index([path])
   @@index([user_id])
 }
+
+model knowledge_section {
+  id                            Int                             @id @default(autoincrement())
+  title                         String?                         @db.VarChar
+  updated_at                    DateTime                        @default(now()) @db.Timestamptz(3)
+  created_at                    DateTime                        @default(now()) @db.Timestamptz(3)
+  knowledge_section_items       knowledge_section_items[]
+  payload_locked_documents_rels payload_locked_documents_rels[]
+
+  @@index([created_at])
+  @@index([updated_at])
+}
+
+model knowledge_section_items {
+  order             Int               @map("_order")
+  parent_id         Int               @map("_parent_id")
+  id                String            @id @db.VarChar
+  name              String?           @db.VarChar
+  image_id          Int?
+  media             media?            @relation(fields: [image_id], references: [id], onUpdate: NoAction, map: "knowledge_section_items_image_id_media_id_fk")
+  knowledge_section knowledge_section @relation(fields: [parent_id], references: [id], onDelete: Cascade, onUpdate: NoAction, map: "knowledge_section_items_parent_id_fk")
+
+  @@index([image_id], map: "knowledge_section_items_image_idx")
+  @@index([order], map: "knowledge_section_items_order_idx")
+  @@index([parent_id], map: "knowledge_section_items_parent_id_idx")
+}
+
 
 enum enum_comment_reactions_reaction_type {
   Like
