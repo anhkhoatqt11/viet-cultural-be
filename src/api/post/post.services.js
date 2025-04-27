@@ -575,18 +575,20 @@ async function getLikesByPostId(postId) {
  * Update a post by ID
  */
 async function updatePost(postId, updateData) {
-    const { image_id, image_url, ...rest } = updateData;
-    // If image_id is null and image_url is provided, set image_url and clear image_id
+    const { image_id, image_url, title, question, user_id_id, tags } = updateData;
     let imageUpdate = {};
-    if (image_id === null && image_url) {
-        imageUpdate = { image_id: null, image_url };
-    } else if (image_id) {
+    if (image_id !== undefined && image_id !== null) {
         imageUpdate = { image_id: Number(image_id), image_url: null };
+    } else if (image_id === null && image_url) {
+        imageUpdate = { image_id: null, image_url };
     }
+    // Update post fields
     const updated = await db.posts.update({
         where: { id: Number(postId) },
         data: {
-            ...rest,
+            ...(title !== undefined ? { title } : {}),
+            ...(question !== undefined ? { question } : {}),
+            ...(user_id_id !== undefined ? { user_id_id: Number(user_id_id) } : {}),
             ...imageUpdate
         },
         include: {
@@ -594,6 +596,23 @@ async function updatePost(postId, updateData) {
             user: true
         }
     });
+    // Update tags if provided
+    if (Array.isArray(tags)) {
+        // Remove all existing tag relations for this post
+        await db.posts_rels.deleteMany({
+            where: { parent_id: Number(postId), path: 'tags' }
+        });
+        // Add new tag relations
+        for (const tagId of tags) {
+            await db.posts_rels.create({
+                data: {
+                    parent_id: Number(postId),
+                    tags_id: Number(tagId),
+                    path: 'tags',
+                }
+            });
+        }
+    }
     return updated;
 }
 
