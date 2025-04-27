@@ -140,7 +140,7 @@ router.post('/create-process', async(req, res, next) => {
 
 router.get('/:id', async (req, res, next) => {
     try {
-        const process = await getProcessById(parseInt(req.params));
+        const process = await getProcessById(parseInt(req.params.id));
         if (!process) {
             return res.status(404).json({ error: 'Process not found' });
         }
@@ -154,7 +154,7 @@ router.patch('/:id', async (req, res, next) => {
     try {
         res.status(200).json({
             message: "Đã cập nhật process",
-            metadata: await updateProcess(parseInt(req.params), req.body)
+            metadata: await updateProcess(parseInt(req.params.id), req.body)
         })
     } catch (error) {
         next(error)
@@ -165,7 +165,7 @@ router.delete('/:id', async (req, res, next) => {
     try {
         res.status(204).send({
             message: "Đã xóa process",
-            metadata: await deleteProcessById(parseInt(req.params))
+            metadata: await deleteProcessById(parseInt(req.params.id))
         });
     } catch (error) {
         next(error)

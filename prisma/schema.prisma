@@ -588,7 +588,7 @@ model user {
   full_name                     String                          @db.VarChar
   username                      String?                         @unique(map: "user_username_idx") @db.VarChar
   password                      String                          @db.VarChar
-  avatar_url                    String?                         @default("https://example.com/default-avatar.png") @db.VarChar
+  avatar_url                    String?                         @default("https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcQeJF7sVh67zp0MmU1w8UaRV9j_vZ0v9-ecYA&s") @db.VarChar
   date_of_birth                 DateTime?                       @db.Timestamptz(3)
   location                      String?                         @db.VarChar
   gender                        enum_user_gender?
@@ -767,6 +767,7 @@ model knowledge_section_items {
   @@index([order], map: "knowledge_section_items_order_idx")
   @@index([parent_id], map: "knowledge_section_items_parent_id_idx")
 }
+
 
 enum enum_comment_reactions_reaction_type {
   Like

@@ -1,16 +1,44 @@
 const express = require('express');
 const router = express.Router();
+const jwt = require('jsonwebtoken');
+const bcrypt = require('bcrypt');
 
 
-const { createPost, getPostById, getAllPosts, commentPost,likePost, isPostLikedByUser, getLikesByPostId  } = require('./post.services');
+const { createPost, getPostById, getAllPosts, commentPost, likePost, isPostLikedByUser, getLikesByPostId, getPostsByUserId } = require('./post.services');
+
+/**
+ * @swagger
+ * components:
+ *   schemas:
+ *     ImageData:
+ *       type: object
+ *       properties:
+ *         fileKey:
+ *           type: string
+ *           description: The key of the uploaded file from UploadThing
+ *         fileUrl:
+ *           type: string
+ *           description: The URL of the uploaded image
+ *         fileName:
+ *           type: string
+ *           description: The name of the uploaded file
+ *         fileSize:
+ *           type: number
+ *           description: The size of the file in bytes
+ *         fileType:
+ *           type: string
+ *           description: The MIME type of the file
+ */
+
 
 /**
  * @swagger
  * /post/create-post:
  *   post:
- *     summary: Create a new post
+ *     summary: Create a new post with optional image
  *     tags:
  *       - Posts
+ *     description: Creates a new post with text content and optionally an image uploaded via UploadThing
  *     requestBody:
  *       required: true
  *       content:
@@ -18,21 +46,59 @@ const { createPost, getPostById, getAllPosts, commentPost,likePost, isPostLikedB
  *           schema:
  *             type: object
  *             properties:
- *               user_id_id:
+ *               userId:
  *                 type: number
+ *                 description: ID of the user creating the post
  *               title:
  *                 type: string
+ *                 description: Title of the post
  *               question:
  *                 type: string
- *               media:
- *                 type: string
+ *                 description: Main content or question of the post
+ *               image_id:
+ *                 type: number
+ *                 description: ID of the pre-uploaded image (obtained from upload/save-media endpoint)
+ *               image:
+ *                 $ref: '#/components/schemas/ImageData'
+ *                 description: Direct image data from UploadThing (alternative to image_id)
  *               tags:
  *                 type: array
  *                 items:
- *                   type: string
+ *                   type: number
+ *                 description: Array of tag IDs to associate with the post
  *     responses:
  *       201:
  *         description: Post created successfully
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 id:
+ *                   type: number
+ *                 title:
+ *                   type: string
+ *                 question:
+ *                   type: string
+ *                 imageUrl:
+ *                   type: string
+ *                   description: Full URL to the image
+ *                 created_at:
+ *                   type: string
+ *                   format: date-time
+ *                 user:
+ *                   type: object
+ *                   properties:
+ *                     id:
+ *                       type: number
+ *                     full_name:
+ *                       type: string
+ *                 tags:
+ *                   type: array
+ *                   items:
+ *                     type: object
+ *       400:
+ *         description: Bad request - missing required fields
  *       500:
  *         description: Internal server error
  */
@@ -64,12 +130,64 @@ const { createPost, getPostById, getAllPosts, commentPost,likePost, isPostLikedB
  * @swagger
  * /post/get-all-posts:
  *   get:
- *     summary: Get all posts
+ *     summary: Get all posts with pagination and search
  *     tags:
  *       - Posts
+ *     parameters:
+ *       - in: query
+ *         name: page
+ *         schema:
+ *           type: integer
+ *           default: 1
+ *         description: Page number for pagination
+ *       - in: query
+ *         name: limit
+ *         schema:
+ *           type: integer
+ *           default: 10
+ *         description: Number of posts per page
+ *       - in: query
+ *         name: search
+ *         schema:
+ *           type: string
+ *         description: Search term for filtering posts by title or content
+ *       - in: query
+ *         name: sortBy
+ *         schema:
+ *           type: string
+ *           enum: [created_at, title]
+ *           default: created_at
+ *         description: Field to sort posts by
+ *       - in: query
+ *         name: sortOrder
+ *         schema:
+ *           type: string
+ *           enum: [asc, desc]
+ *           default: desc
+ *         description: Sort order (ascending or descending)
  *     responses:
  *       200:
- *         description: Posts retrieved successfully
+ *         description: Posts retrieved successfully with pagination data
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 posts:
+ *                   type: array
+ *                   items:
+ *                     type: object
+ *                 pagination:
+ *                   type: object
+ *                   properties:
+ *                     total:
+ *                       type: integer
+ *                     page:
+ *                       type: integer
+ *                     limit:
+ *                       type: integer
+ *                     totalPages:
+ *                       type: integer
  *       500:
  *         description: Internal server error
  */
@@ -100,10 +218,19 @@ router.get('/get-post', async (req, res, next) => {
 
 router.get('/get-all-posts', async (req, res, next) => {
     try {
-        // Assuming you have a function to get posts by user ID
-        const posts = await getAllPosts();
-        res.json(posts);
+        const { page, limit, search, sortBy, sortOrder } = req.query;
+        const options = {
+            page: parseInt(page) || 1,
+            limit: parseInt(limit) || 10,
+            search: search || '',
+            sortBy: sortBy || 'created_at',
+            sortOrder: sortOrder || 'desc'
+        };
+
+        const result = await getAllPosts(options);
+        res.json(result);
     } catch (err) {
+        console.error('Error fetching posts:', err);
         next(err);
     }
 });
@@ -291,6 +418,100 @@ router.get('/:postId/likes', async (req, res) => {
     }
 });
 
+/**
+ * @swagger
+ * /post/get-posts-by-user:
+ *   get:
+ *     summary: Get all posts by a specific user
+ *     tags:
+ *       - Posts
+ *     parameters:
+ *       - in: query
+ *         name: page
+ *         schema:
+ *           type: integer
+ *           default: 1
+ *         description: Page number for pagination
+ *       - in: query
+ *         name: limit
+ *         schema:
+ *           type: integer
+ *           default: 10
+ *         description: Number of posts per page
+ *       - in: query
+ *         name: search
+ *         schema:
+ *           type: string
+ *         description: Search term for filtering posts by title or content
+ *       - in: query
+ *         name: sortBy
+ *         schema:
+ *           type: string
+ *           enum: [created_at, title]
+ *           default: created_at
+ *         description: Field to sort posts by
+ *       - in: query
+ *         name: sortOrder
+ *         schema:
+ *           type: string
+ *           enum: [asc, desc]
+ *           default: desc
+ *         description: Sort order (ascending or descending)
+ *     responses:
+ *       200:
+ *         description: Posts retrieved successfully with pagination data
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 posts:
+ *                   type: array
+ *                   items:
+ *                     type: object
+ *                 pagination:
+ *                   type: object
+ *                   properties:
+ *                     total:
+ *                       type: integer
+ *                     page:
+ *                       type: integer
+ *                     limit:
+ *                       type: integer
+ *                     totalPages:
+ *                       type: integer
+ *       400:
+ *         description: Bad request - missing userId
+ *       500:
+ *         description: Internal server error
+ */
+router.get('/get-posts-by-user', async (req, res) => {
+    try {
+        const { page, limit, search, sortBy, sortOrder } = req.query;
+        const token = req.cookies?.token;
+        if (!token) {
+            return res.status(401).json({ message: 'No token provided' });
+        }
 
+        // Decode the token to get userId (assuming JWT and userId is in payload)
+        const decoded = jwt.verify(token, process.env.JWT_ACCESS_SECRET);
+        const userId = decoded.userId;
+        if (!userId) {
+            return res.status(400).json({ error: 'Missing required parameter: userId' });
+        }
+        const options = {
+            page: parseInt(page) || 1,
+            limit: parseInt(limit) || 10,
+            search: search || '',
+            sortBy: sortBy || 'created_at',
+            sortOrder: sortOrder || 'desc'
+        };
+        const result = await getPostsByUserId(userId, options);
+        res.json(result);
+    } catch (err) {
+        console.error('Error fetching posts by user:', err);
+        res.status(500).json({ error: 'Internal server error' });
+    }
+});
 
 module.exports = router;

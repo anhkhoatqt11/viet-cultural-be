@@ -8,11 +8,14 @@ const post = require('./post/post.routes');
 const assistance = require('./assistance/assistance.routes');
 const comment = require('./comment/comment.routes');
 const tags = require('./tags/tags.routes');
+const upload = require('./upload/upload.routes');
 
 const knowledge_post = require('./knowledge_post/knowledgePost.routes')
 const knowledge_section = require('./knowledge_section/knowledgeSection.routes')
 
 const process = require('./process/process.routes')
+
+const achievement = require('./achievements/achievement.routes')
 
 const router = express.Router();
 
@@ -41,6 +44,11 @@ router.use('/assistance', assistance)
 router.use('/tags', tags);
 
 router.use('/section', knowledge_section)
+
+router.use('/upload', upload);
+
+router.use('/achievements', achievement)
+
 
 router.use('/knowledge-post', knowledge_post)
 

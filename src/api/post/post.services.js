@@ -1,13 +1,34 @@
 const { db } = require('../../utils/db');
 
 const IMAGE_BASE_URL = 'https://qauff8c31y.ufs.sh/f/';
+const UPLOADTHING_BASE_URL = 'https://uploadthing.com/f/';
 
 async function createPost(post) {
-    // Extract userId and tags if provided
-    const { userId, tags, ...postData } = post;
+    // Extract userId, tags, and image data if provided
+    const { userId, tags, image, ...postData } = post;
 
     // Create transaction to ensure post and tag relations are created atomically
     return await db.$transaction(async (tx) => {
+        // Check if we have image info but not image_id
+        let imageId = post.image_id;
+
+        // If image data is provided but no image_id, create a media record first
+        if (image && !imageId) {
+            // Create a new media entry with the data from UploadThing
+            const newMedia = await tx.media.create({
+                data: {
+                    alt: image.fileName || 'Post image',
+                    key: image.fileKey,
+                    url: image.fileUrl,
+                    filename: image.fileName || `upload-${Date.now()}`,
+                    mime_type: image.fileType || 'image/jpeg',
+                    filesize: image.fileSize || 0,
+                }
+            });
+
+            imageId = newMedia.id;
+        }
+
         // Create the post first
         const createdPost = await tx.posts.create({
             data: {
@@ -15,7 +36,7 @@ async function createPost(post) {
                 // Map userId to user_id_id
                 user_id_id: userId ? Number(userId) : undefined,
                 // If an image_id is provided as string, convert to number
-                image_id: post.image_id ? Number(post.image_id) : undefined
+                image_id: imageId ? Number(imageId) : undefined
             },
             include: {
                 media: true,
@@ -51,15 +72,30 @@ async function createPost(post) {
             }
         });
 
-        // Format the response
+        // Format the image URL based on the source (UploadThing or existing storage)
+        let imageUrl = null;
+        if (postWithTags.media) {
+            if (postWithTags.media.url) {
+                // If a full URL is stored, use it directly
+                imageUrl = postWithTags.media.url;
+            } else if (postWithTags.media.key) {
+                // Otherwise construct URL based on key format
+                if (postWithTags.media.key.startsWith('ut_')) {
+                    imageUrl = `${UPLOADTHING_BASE_URL}${postWithTags.media.key}`;
+                } else {
+                    imageUrl = `${IMAGE_BASE_URL}${postWithTags.media.key}`;
+                }
+            }
+        }
+
         return {
             ...postWithTags,
-            imageUrl: postWithTags.media && postWithTags.media.key ?
-                `${IMAGE_BASE_URL}${postWithTags.media.key}` : null,
+            imageUrl,
             user: postWithTags.user ? {
                 id: postWithTags.user.id,
                 full_name: postWithTags.user.full_name,
                 avatar_url: postWithTags.user.avatar_url,
+                // Handle user avatar URL similarly
                 avatarUrl: postWithTags.user.avatar ?
                     `${IMAGE_BASE_URL}${postWithTags.user.avatar}` : null
             } : null,
@@ -67,6 +103,8 @@ async function createPost(post) {
         };
     });
 }
+
+// Update getPostById to handle UploadThing URLs
 async function getPostById(id) {
     id = Number(id);
 
@@ -95,9 +133,20 @@ async function getPostById(id) {
         }
     });
 
+    // Format the image URL based on whether it's an UploadThing URL or older URL format
+    const mediaUrl = post.media ?
+        (post.media.url ?
+            post.media.url :
+            (post.media.key ?
+                (post.media.key.startsWith('ut_') ?
+                    `${UPLOADTHING_BASE_URL}${post.media.key}` :
+                    `${IMAGE_BASE_URL}${post.media.key}`) :
+                null)) :
+        null;
+
     return {
         ...post,
-        imageUrl: post.media && post.media.key ? `${IMAGE_BASE_URL}${post.media.key}` : null,
+        imageUrl: mediaUrl,
         user: post.user ? {
             id: post.user.id,
             full_name: post.user.full_name,
@@ -109,32 +158,254 @@ async function getPostById(id) {
     };
 }
 
-async function getAllPosts() {
+// Update getAllPosts to handle UploadThing URLs
+async function getAllPosts(options = {}) {
+    // Extract pagination and search parameters with defaults
+    const {
+        page = 1,
+        limit = 10,
+        search = '',
+        sortBy = 'created_at',
+        sortOrder = 'desc'
+    } = options;
+
+    // Calculate pagination values
+    const skip = (page - 1) * limit;
+    const take = parseInt(limit);
+
+    // Build where conditions for searching in title and question fields
+    const whereCondition = search
+        ? {
+            OR: [
+                { title: { contains: search, mode: 'insensitive' } },
+                { question: { contains: search, mode: 'insensitive' } }
+            ]
+        }
+        : {};
+
+    // Get total count for pagination
+    const totalCount = await db.posts.count({ where: whereCondition });
+
+    // Get posts with pagination
     const posts = await db.posts.findMany({
+        where: whereCondition,
+        skip,
+        take,
         include: {
             media: true,
             user: true,
-            posts_rels: true
+            posts_rels: {
+                include: {
+                    tags: true
+                }
+            },
+            comments: {
+                orderBy: { created_at: 'desc' },
+                include: {
+                    user: true,
+                    comments_rels: {
+                        where: {
+                            path: 'likedBy'
+                        }
+                    }
+                }
+            },
+            _count: {
+                select: { comments: true }
+            }
         },
+        orderBy: {
+            [sortBy]: sortOrder
+        }
     });
 
-    return posts.map(post => {
+    // Format the response data
+    const formattedPosts = posts.map(post => {
         // Count likes (posts_rels with path='likedBy')
         const likeCount = post.posts_rels.filter(rel => rel.path === 'likedBy').length;
 
+        // Format comments for preview with likes from comments_rels
+        const formattedComments = post.comments.map(comment => {
+            // Count likes from comments_rels
+            const commentLikes = comment.comments_rels ? comment.comments_rels.length : 0;
+
+            return {
+                id: comment.id,
+                content: comment.content,
+                likes: commentLikes,
+                created_at: comment.created_at,
+                user: comment.user ? {
+                    id: comment.user.id,
+                    full_name: comment.user.full_name,
+                    avatar_url: comment.user.avatar_url,
+                    avatarUrl: comment.user.avatar ? `${IMAGE_BASE_URL}${comment.user.avatar}` : null
+                } : null,
+            };
+        });
+
+        // Format the image URL based on whether it's an UploadThing URL or older URL format
+        const mediaUrl = post.media ?
+            (post.media.url ?
+                post.media.url :
+                (post.media.key ?
+                    (post.media.key.startsWith('ut_') ?
+                        `${UPLOADTHING_BASE_URL}${post.media.key}` :
+                        `${IMAGE_BASE_URL}${post.media.key}`) :
+                    null)) :
+            null;
+
+
+        const tags = post.posts_rels
+            .filter(rel => rel.path === 'tags' && rel.tags)
+            .map(rel => ({
+                id: rel.tags.id,
+                name: rel.tags.name
+            }));
+
         return {
-            ...post,
-            imageUrl: post.media && post.media.key ? `${IMAGE_BASE_URL}${post.media.key}` : null,
+            id: post.id,
+            title: post.title,
+            question: post.question,
+            created_at: post.created_at,
+            updated_at: post.updated_at,
+            imageUrl: mediaUrl,
             user: post.user ? {
                 id: post.user.id,
                 full_name: post.user.full_name,
                 avatar_url: post.user.avatar_url,
                 avatarUrl: post.user.avatar ? `${IMAGE_BASE_URL}${post.user.avatar}` : null
-                // Only include non-confidential fields
             } : null,
-            likeCount
+            likeCount,
+            commentCount: post._count.comments,
+            comments: formattedComments,
+            tags
         };
     });
+
+    return {
+        posts: formattedPosts,
+        pagination: {
+            total: totalCount,
+            page: parseInt(page),
+            limit: parseInt(limit),
+            totalPages: Math.ceil(totalCount / limit)
+        }
+    };
+}
+
+/**
+ * Get all posts by a specific user
+ */
+async function getPostsByUserId(userId, options = {}) {
+    userId = Number(userId);
+    const {
+        page = 1,
+        limit = 10,
+        search = '',
+        sortBy = 'created_at',
+        sortOrder = 'desc'
+    } = options;
+
+    const skip = (page - 1) * limit;
+    const take = parseInt(limit);
+
+    const whereCondition = {
+        user_id_id: userId,
+        ...(search
+            ? {
+                OR: [
+                    { title: { contains: search, mode: 'insensitive' } },
+                    { question: { contains: search, mode: 'insensitive' } }
+                ]
+            }
+            : {})
+    };
+
+    const totalCount = await db.posts.count({ where: whereCondition });
+
+    const posts = await db.posts.findMany({
+        where: whereCondition,
+        skip,
+        take,
+        include: {
+            media: true,
+            user: true,
+            posts_rels: {
+                include: { tags: true }
+            },
+            comments: {
+                orderBy: { created_at: 'desc' },
+                include: {
+                    user: true,
+                    comments_rels: { where: { path: 'likedBy' } }
+                }
+            },
+            _count: { select: { comments: true } }
+        },
+        orderBy: { [sortBy]: sortOrder }
+    });
+
+    const formattedPosts = posts.map(post => {
+        const likeCount = post.posts_rels.filter(rel => rel.path === 'likedBy').length;
+        const formattedComments = post.comments.map(comment => {
+            const commentLikes = comment.comments_rels ? comment.comments_rels.length : 0;
+            return {
+                id: comment.id,
+                content: comment.content,
+                likes: commentLikes,
+                created_at: comment.created_at,
+                user: comment.user ? {
+                    id: comment.user.id,
+                    full_name: comment.user.full_name,
+                    avatar_url: comment.user.avatar_url,
+                    avatarUrl: comment.user.avatar ? `${IMAGE_BASE_URL}${comment.user.avatar}` : null
+                } : null,
+            };
+        });
+        const mediaUrl = post.media ?
+            (post.media.url ?
+                post.media.url :
+                (post.media.key ?
+                    (post.media.key.startsWith('ut_') ?
+                        `${UPLOADTHING_BASE_URL}${post.media.key}` :
+                        `${IMAGE_BASE_URL}${post.media.key}`) :
+                    null)) :
+            null;
+        const tags = post.posts_rels
+            .filter(rel => rel.path === 'tags' && rel.tags)
+            .map(rel => ({
+                id: rel.tags.id,
+                name: rel.tags.name
+            }));
+        return {
+            id: post.id,
+            title: post.title,
+            question: post.question,
+            created_at: post.created_at,
+            updated_at: post.updated_at,
+            imageUrl: mediaUrl,
+            user: post.user ? {
+                id: post.user.id,
+                full_name: post.user.full_name,
+                avatar_url: post.user.avatar_url,
+                avatarUrl: post.user.avatar ? `${IMAGE_BASE_URL}${post.user.avatar}` : null
+            } : null,
+            likeCount,
+            commentCount: post._count.comments,
+            comments: formattedComments,
+            tags
+        };
+    });
+
+    return {
+        posts: formattedPosts,
+        pagination: {
+            total: totalCount,
+            page: parseInt(page),
+            limit: parseInt(limit),
+            totalPages: Math.ceil(totalCount / limit)
+        }
+    };
 }
 
 async function commentPost(postId, comment) {
@@ -291,13 +562,11 @@ async function getLikesByPostId(postId) {
     }));
 }
 
-
-
-
 module.exports = {
     createPost,
     getPostById,
     getAllPosts,
+    getPostsByUserId,
     commentPost,
     likePost,
     isPostLikedByUser,

@@ -3,15 +3,13 @@ const { db } = require('../../utils/db');
 const IMAGE_BASE_URL = 'https://qauff8c31y.ufs.sh/f/';
 
 const Comment = db.comments;
-const CommentReaction = db.comment_reactions;
+const CommentsRels = db.comments_rels;
 
 const createComment = async (commentData) => {
     // Map API field names to database field names
     return await Comment.create({
         data: {
             content: commentData.content,
-            likes: commentData.likes || 0,
-            dislikes: commentData.dislikes || 0,
             // Use only the database field names, not the API names
             user_id_id: commentData.userId ? Number(commentData.userId) : null,
             post_id_id: commentData.postId ? Number(commentData.postId) : null,
@@ -41,6 +39,14 @@ const getCommentById = async (id) => {
         }
     });
 
+    // Get like count from comments_rels
+    const likeCount = await CommentsRels.count({
+        where: {
+            parent_id: parseInt(id),
+            path: 'likedBy'
+        }
+    });
+
     // Format post with imageUrl
     const post = comment.posts;
     const formattedPost = post
@@ -52,6 +58,7 @@ const getCommentById = async (id) => {
 
     return {
         ...comment,
+        likes: likeCount,
         post: formattedPost,
         replies: replies
     };
@@ -89,56 +96,49 @@ const likeComment = async (commentId, userId) => {
     if (!comment) {
         throw new Error('Bình luận không tồn tại');
     }
-    const existingReaction = await CommentReaction.findFirst({
+    
+    const existingLike = await CommentsRels.findFirst({
         where: {
-            comment_id: parseInt(commentId),
-            user_id: parseInt(userId)
+            parent_id: parseInt(commentId),
+            user_id: parseInt(userId),
+            path: 'likedBy'
         }
     });
 
-    if (existingReaction) {
-        if (existingReaction.reaction_type === "Like") {
-            // Un-like
-            await CommentReaction.delete({
-                where: { id: existingReaction.id }
-            });
-            await Comment.update({
-                where: { id: parseInt(commentId) },
-                data: { likes: { decrement: 1 } }
-            });
-            return { message: "Đã bỏ thích bình luận", likes: comment.likes - 1 };
-        } else if (existingReaction.reaction_type === "Dislike") {
-            // Switch from dislike to like
-            await CommentReaction.update({
-                where: { id: existingReaction.id },
-                data: { reaction_type: "Like" }
-            });
-            await Comment.update({
-                where: { id: parseInt(commentId) },
-                data: {
-                    likes: { increment: 1 },
-                    dislikes: { decrement: 1 }
-                }
-            });
-            return {
-                message: "Đã chuyển thành thích bình luận",
-                likes: comment.likes + 1,
-                dislikes: comment.dislikes - 1
-            };
-        }
-    } else {
-        await CommentReaction.create({
-            data: {
-                comment_id: parseInt(commentId),
-                user_id: parseInt(userId),
-                reaction_type: "Like"
+    if (existingLike) {
+        // Un-like
+        await CommentsRels.delete({
+            where: { id: existingLike.id }
+        });
+        
+        // Get updated like count
+        const likeCount = await CommentsRels.count({
+            where: {
+                parent_id: parseInt(commentId),
+                path: 'likedBy'
             }
         });
-        await Comment.update({
-            where: { id: parseInt(commentId) },
-            data: { likes: { increment: 1 } }
+        
+        return { message: "Đã bỏ thích bình luận", likes: likeCount };
+    } else {
+        // Add like
+        await CommentsRels.create({
+            data: {
+                parent_id: parseInt(commentId),
+                user_id: parseInt(userId),
+                path: 'likedBy'
+            }
         });
-        return { message: "Đã thích bình luận", likes: comment.likes + 1 };
+        
+        // Get updated like count
+        const likeCount = await CommentsRels.count({
+            where: {
+                parent_id: parseInt(commentId),
+                path: 'likedBy'
+            }
+        });
+        
+        return { message: "Đã thích bình luận", likes: likeCount };
     }
 };
 
@@ -146,57 +146,38 @@ const dislikeComment = async (commentId, userId) => {
     const comment = await Comment.findUnique({
         where: { id: parseInt(commentId) }
     });
-
-    const existingReaction = await CommentReaction.findFirst({
+    if (!comment) {
+        throw new Error('Bình luận không tồn tại');
+    }
+    
+    const existingLike = await CommentsRels.findFirst({
         where: {
-            comment_id: parseInt(commentId),
-            user_id: parseInt(userId)
+            parent_id: parseInt(commentId),
+            user_id: parseInt(userId),
+            path: 'likedBy'
         }
     });
 
-    if (existingReaction) {
-        if (existingReaction.reaction_type === "Dislike") {
-            await CommentReaction.delete({
-                where: { id: existingReaction.id }
-            });
-            await Comment.update({
-                where: { id: parseInt(commentId) },
-                data: { dislikes: { decrement: 1 } }
-            });
-            return { message: "Đã bỏ dislike bình luận", dislikes: comment.dislikes - 1 };
-        } else if (existingReaction.reaction_type === "Like") {
-            await CommentReaction.update({
-                where: { id: existingReaction.id },
-                data: { reaction_type: "Dislike" }
-            });
-            await Comment.update({
-                where: { id: parseInt(commentId) },
-                data: {
-                    likes: { decrement: 1 },
-                    dislikes: { increment: 1 }
-                }
-            });
-            return {
-                message: "Đã chuyển thành dislike bình luận",
-                dislikes: comment.dislikes + 1,
-                likes: comment.likes - 1
-            };
-        }
-    } else {
-        await CommentReaction.create({
-            data: {
-                comment_id: parseInt(commentId),
-                user_id: parseInt(userId),
-                reaction_type: "Dislike"
+    // We're removing the dislikeComment functionality since we're only using likes
+    // Just remove the like if it exists, same as unlikeComment
+    if (existingLike) {
+        await CommentsRels.delete({
+            where: { id: existingLike.id }
+        });
+        
+        const likeCount = await CommentsRels.count({
+            where: {
+                parent_id: parseInt(commentId),
+                path: 'likedBy'
             }
         });
-        await Comment.update({
-            where: { id: parseInt(commentId) },
-            data: { dislikes: { increment: 1 } }
-        });
-        return { message: "Đã dislike bình luận", dislikes: comment.dislikes + 1 };
+        
+        return { message: "Đã bỏ thích bình luận", likes: likeCount };
     }
+    
+    return { message: "Chưa thích bình luận này", likes: 0 };
 };
+
 const getCommentsByPostId = async (postId) => {
     // Get top-level comments (ones without a parent)
     const comments = await Comment.findMany({
@@ -210,6 +191,11 @@ const getCommentsByPostId = async (postId) => {
                 include: {
                     user: true
                 }
+            },
+            comments_rels: {
+                where: {
+                    path: 'likedBy'
+                }
             }
         },
         orderBy: {
@@ -218,18 +204,33 @@ const getCommentsByPostId = async (postId) => {
     });
 
     // Format the comments and their replies
-    const formattedComments = comments.map(comment => {
-        const formattedReplies = comment.other_comments.map(reply => ({
-            ...reply,
-            // Format user data if needed
-            user: reply.user ? {
-                ...reply.user,
-                avatarUrl: reply.user.avatar_url
-            } : null,
+    const formattedComments = await Promise.all(comments.map(async (comment) => {
+        // Get replies with their likes
+        const formattedReplies = await Promise.all(comment.other_comments.map(async (reply) => {
+            const replyLikes = await CommentsRels.count({
+                where: {
+                    parent_id: reply.id,
+                    path: 'likedBy'
+                }
+            });
+            
+            return {
+                ...reply,
+                likes: replyLikes,
+                // Format user data if needed
+                user: reply.user ? {
+                    ...reply.user,
+                    avatarUrl: reply.user.avatar_url
+                } : null,
+            };
         }));
+
+        // Count likes from comments_rels
+        const likeCount = comment.comments_rels.length;
 
         return {
             ...comment,
+            likes: likeCount,
             // Format user data if needed
             user: comment.user ? {
                 ...comment.user,
@@ -237,11 +238,80 @@ const getCommentsByPostId = async (postId) => {
             } : null,
             replies: formattedReplies
         };
-    });
+    }));
 
     return formattedComments;
 };
 
+/**
+ * Check if a user has liked a specific comment
+ * @param {number} commentId - The comment ID
+ * @param {number} userId - The user ID
+ * @returns {Promise<boolean>} - True if the user liked the comment, false otherwise
+ */
+const isCommentLikedByUser = async (commentId, userId) => {
+    const like = await CommentsRels.findFirst({
+        where: {
+            parent_id: Number(commentId),
+            user_id: Number(userId),
+            path: 'likedBy'
+        }
+    });
+
+    return !!like; // Convert to boolean (true if like exists, false if not)
+};
+
+
+const unlikeComment = async (commentId, userId) => {
+    const comment = await Comment.findUnique({
+        where: { id: parseInt(commentId) }
+    });
+    
+    if (!comment) {
+        throw new Error('Bình luận không tồn tại');
+    }
+    
+    const existingLike = await CommentsRels.findFirst({
+        where: {
+            parent_id: parseInt(commentId),
+            user_id: parseInt(userId),
+            path: 'likedBy'
+        }
+    });
+
+    if (!existingLike) {
+        // Get current like count
+        const likeCount = await CommentsRels.count({
+            where: {
+                parent_id: parseInt(commentId),
+                path: 'likedBy'
+            }
+        });
+        
+        return { 
+            message: "Chưa thích bình luận này",
+            likes: likeCount
+        };
+    }
+
+    // Delete the like reaction
+    await CommentsRels.delete({
+        where: { id: existingLike.id }
+    });
+    
+    // Get updated like count
+    const updatedLikeCount = await CommentsRels.count({
+        where: {
+            parent_id: parseInt(commentId),
+            path: 'likedBy'
+        }
+    });
+    
+    return { 
+        message: "Đã bỏ thích bình luận", 
+        likes: updatedLikeCount
+    };
+};
 
 module.exports = {
     createComment,
@@ -251,4 +321,6 @@ module.exports = {
     likeComment,
     dislikeComment,
     getCommentsByPostId,
+    isCommentLikedByUser,
+    unlikeComment
 };
