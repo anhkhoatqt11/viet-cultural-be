@@ -16,6 +16,7 @@ const knowledge_section = require('./knowledge_section/knowledgeSection.routes')
 const process = require('./process/process.routes')
 
 const achievement = require('./achievements/achievement.routes')
+const feedback = require('./feedback/feedback.routes')
 
 const router = express.Router();
 
@@ -54,6 +55,6 @@ router.use('/knowledge-post', knowledge_post)
 
 router.use('/process', process)
 
-
+router.use('/feedback', feedback)
 
 module.exports = router;
