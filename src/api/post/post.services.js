@@ -575,45 +575,73 @@ async function getLikesByPostId(postId) {
  * Update a post by ID
  */
 async function updatePost(postId, updateData) {
-    const { image_id, image_url, title, question, user_id_id, tags } = updateData;
-    let imageUpdate = {};
-    if (image_id !== undefined && image_id !== null) {
-        imageUpdate = { image_id: Number(image_id), image_url: null };
-    } else if (image_id === null && image_url) {
-        imageUpdate = { image_id: null, image_url };
-    }
-    // Update post fields
-    const updated = await db.posts.update({
-        where: { id: Number(postId) },
-        data: {
-            ...(title !== undefined ? { title } : {}),
-            ...(question !== undefined ? { question } : {}),
-            ...(user_id_id !== undefined ? { user_id_id: Number(user_id_id) } : {}),
-            ...imageUpdate
-        },
-        include: {
-            media: true,
-            user: true
-        }
-    });
-    // Update tags if provided
-    if (Array.isArray(tags)) {
-        // Remove all existing tag relations for this post
-        await db.posts_rels.deleteMany({
-            where: { parent_id: Number(postId), path: 'tags' }
-        });
-        // Add new tag relations
-        for (const tagId of tags) {
-            await db.posts_rels.create({
+    const { image, image_id, image_url, title, question, user_id_id, tags, ...rest } = updateData;
+
+    // Start a transaction to handle media and tags atomically
+    return await db.$transaction(async (tx) => {
+        let newImageId = image_id;
+
+        // If image data is provided but no image_id, create a media record first
+        if (image && !image_id) {
+            const newMedia = await tx.media.create({
                 data: {
-                    parent_id: Number(postId),
-                    tags_id: Number(tagId),
-                    path: 'tags',
+                    alt: image.fileName || 'Post image',
+                    key: image.fileKey,
+                    url: image.fileUrl,
+                    filename: image.fileName || `upload-${Date.now()}`,
+                    mime_type: image.fileType || 'image/jpeg',
+                    filesize: image.fileSize || 0,
                 }
             });
+            newImageId = newMedia.id;
         }
-    }
-    return updated;
+
+        // Prepare image fields like in createPost
+        let imageFields = {};
+        if (newImageId) {
+            imageFields = { image_id: Number(newImageId), image_url: undefined };
+        } else if (newImageId === null && image_url) {
+            imageFields = { image_id: null, image_url };
+        } else if (!newImageId && image_url) {
+            imageFields = { image_id: null, image_url };
+        }
+
+        // Update post fields
+        const updated = await tx.posts.update({
+            where: { id: Number(postId) },
+            data: {
+                ...(title !== undefined ? { title } : {}),
+                ...(question !== undefined ? { question } : {}),
+                ...(user_id_id !== undefined ? { user_id_id: Number(user_id_id) } : {}),
+                ...rest,
+                ...imageFields
+            },
+            include: {
+                media: true,
+                user: true
+            }
+        });
+
+        // Update tags if provided
+        if (Array.isArray(tags)) {
+            // Remove all existing tag relations for this post
+            await tx.posts_rels.deleteMany({
+                where: { parent_id: Number(postId), path: 'tags' }
+            });
+            // Add new tag relations
+            for (const tagId of tags) {
+                await tx.posts_rels.create({
+                    data: {
+                        parent_id: Number(postId),
+                        tags_id: Number(tagId),
+                        path: 'tags',
+                    }
+                });
+            }
+        }
+
+        return updated;
+    });
 }
 
 /**
