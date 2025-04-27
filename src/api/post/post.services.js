@@ -571,6 +571,41 @@ async function getLikesByPostId(postId) {
     }));
 }
 
+/**
+ * Update a post by ID
+ */
+async function updatePost(postId, updateData) {
+    const { image_id, image_url, ...rest } = updateData;
+    // If image_id is null and image_url is provided, set image_url and clear image_id
+    let imageUpdate = {};
+    if (image_id === null && image_url) {
+        imageUpdate = { image_id: null, image_url };
+    } else if (image_id) {
+        imageUpdate = { image_id: Number(image_id), image_url: null };
+    }
+    const updated = await db.posts.update({
+        where: { id: Number(postId) },
+        data: {
+            ...rest,
+            ...imageUpdate
+        },
+        include: {
+            media: true,
+            user: true
+        }
+    });
+    return updated;
+}
+
+/**
+ * Delete a post by ID
+ */
+async function deletePost(postId) {
+    return await db.posts.delete({
+        where: { id: Number(postId) }
+    });
+}
+
 module.exports = {
     createPost,
     getPostById,
@@ -579,5 +614,7 @@ module.exports = {
     commentPost,
     likePost,
     isPostLikedByUser,
-    getLikesByPostId
+    getLikesByPostId,
+    updatePost,
+    deletePost
 };

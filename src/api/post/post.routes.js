@@ -4,7 +4,7 @@ const jwt = require('jsonwebtoken');
 const bcrypt = require('bcrypt');
 
 
-const { createPost, getPostById, getAllPosts, commentPost, likePost, isPostLikedByUser, getLikesByPostId, getPostsByUserId } = require('./post.services');
+const { createPost, getPostById, getAllPosts, commentPost, likePost, isPostLikedByUser, getLikesByPostId, getPostsByUserId, updatePost, deletePost } = require('./post.services');
 
 /**
  * @swagger
@@ -510,6 +510,105 @@ router.get('/get-posts-by-user', async (req, res) => {
         res.json(result);
     } catch (err) {
         console.error('Error fetching posts by user:', err);
+        res.status(500).json({ error: 'Internal server error' });
+    }
+});
+
+/**
+ * @swagger
+ * /post/edit-post:
+ *   put:
+ *     summary: Edit a post
+ *     tags:
+ *       - Posts
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             properties:
+ *               postId:
+ *                 type: number
+ *                 description: ID of the post to edit
+ *               title:
+ *                 type: string
+ *               question:
+ *                 type: string
+ *               image_id:
+ *                 type: number
+ *                 nullable: true
+ *               image_url:
+ *                 type: string
+ *                 nullable: true
+ *               tags:
+ *                 type: array
+ *                 items:
+ *                   type: number
+ *     responses:
+ *       200:
+ *         description: Post updated successfully
+ *       400:
+ *         description: Bad request
+ *       404:
+ *         description: Post not found
+ *       500:
+ *         description: Internal server error
+ */
+router.put('/edit-post', async (req, res) => {
+    try {
+        const { postId, ...updateData } = req.body;
+        if (!postId) {
+            return res.status(400).json({ error: 'Missing postId' });
+        }
+        const updated = await updatePost(postId, updateData);
+        res.json(updated);
+    } catch (err) {
+        if (err.code === 'P2025') {
+            return res.status(404).json({ error: 'Post not found' });
+        }
+        console.error('Error updating post:', err);
+        res.status(500).json({ error: 'Internal server error' });
+    }
+});
+
+/**
+ * @swagger
+ * /post/delete-post:
+ *   delete:
+ *     summary: Delete a post
+ *     tags:
+ *       - Posts
+ *     parameters:
+ *       - in: query
+ *         name: postId
+ *         schema:
+ *           type: number
+ *         required: true
+ *         description: ID of the post to delete
+ *     responses:
+ *       200:
+ *         description: Post deleted successfully
+ *       400:
+ *         description: Bad request
+ *       404:
+ *         description: Post not found
+ *       500:
+ *         description: Internal server error
+ */
+router.delete('/delete-post', async (req, res) => {
+    try {
+        const postId = req.query.postId || req.body?.postId;
+        if (!postId) {
+            return res.status(400).json({ error: 'Missing postId' });
+        }
+        await deletePost(postId);
+        res.json({ message: 'Post deleted successfully' });
+    } catch (err) {
+        if (err.code === 'P2025') {
+            return res.status(404).json({ error: 'Post not found' });
+        }
+        console.error('Error deleting post:', err);
         res.status(500).json({ error: 'Internal server error' });
     }
 });
