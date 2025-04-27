@@ -33,10 +33,10 @@ async function createPost(post) {
         const createdPost = await tx.posts.create({
             data: {
                 ...postData,
-                // Map userId to user_id_id
                 user_id_id: userId ? Number(userId) : undefined,
-                // If an image_id is provided as string, convert to number
-                image_id: imageId ? Number(imageId) : undefined
+                image_id: imageId ? Number(imageId) : undefined,
+                // If image_id is not provided but image_url is, save image_url
+                image_url: (!imageId && post.image_url) ? post.image_url : undefined
             },
             include: {
                 media: true,
@@ -72,14 +72,14 @@ async function createPost(post) {
             }
         });
 
-        // Format the image URL based on the source (UploadThing or existing storage)
+        // Format the image URL based on the source (UploadThing, direct URL, or existing storage)
         let imageUrl = null;
-        if (postWithTags.media) {
+        if (postWithTags.image_id === null && postWithTags.image_url) {
+            imageUrl = postWithTags.image_url;
+        } else if (postWithTags.media) {
             if (postWithTags.media.url) {
-                // If a full URL is stored, use it directly
                 imageUrl = postWithTags.media.url;
             } else if (postWithTags.media.key) {
-                // Otherwise construct URL based on key format
                 if (postWithTags.media.key.startsWith('ut_')) {
                     imageUrl = `${UPLOADTHING_BASE_URL}${postWithTags.media.key}`;
                 } else {
@@ -133,20 +133,25 @@ async function getPostById(id) {
         }
     });
 
-    // Format the image URL based on whether it's an UploadThing URL or older URL format
-    const mediaUrl = post.media ?
-        (post.media.url ?
-            post.media.url :
-            (post.media.key ?
-                (post.media.key.startsWith('ut_') ?
-                    `${UPLOADTHING_BASE_URL}${post.media.key}` :
-                    `${IMAGE_BASE_URL}${post.media.key}`) :
-                null)) :
-        null;
+    // Format the image URL: if image_id is null and image_url exists, use image_url. Otherwise, use media logic.
+    let imageUrl = null;
+    if (post.image_id === null && post.image_url) {
+        imageUrl = post.image_url;
+    } else if (post.media) {
+        if (post.media.url) {
+            imageUrl = post.media.url;
+        } else if (post.media.key) {
+            if (post.media.key.startsWith('ut_')) {
+                imageUrl = `${UPLOADTHING_BASE_URL}${post.media.key}`;
+            } else {
+                imageUrl = `${IMAGE_BASE_URL}${post.media.key}`;
+            }
+        }
+    }
 
     return {
         ...post,
-        imageUrl: mediaUrl,
+        imageUrl,
         user: post.user ? {
             id: post.user.id,
             full_name: post.user.full_name,
@@ -243,17 +248,18 @@ async function getAllPosts(options = {}) {
             };
         });
 
-        // Format the image URL based on whether it's an UploadThing URL or older URL format
-        const mediaUrl = post.media ?
-            (post.media.url ?
-                post.media.url :
-                (post.media.key ?
-                    (post.media.key.startsWith('ut_') ?
-                        `${UPLOADTHING_BASE_URL}${post.media.key}` :
-                        `${IMAGE_BASE_URL}${post.media.key}`) :
-                    null)) :
-            null;
-
+        // Format the image URL: if image_id is null and image_url exists, use image_url. Otherwise, use media logic.
+        const mediaUrl = post.image_id === null && post.image_url
+            ? post.image_url
+            : (post.media ?
+                (post.media.url ?
+                    post.media.url :
+                    (post.media.key ?
+                        (post.media.key.startsWith('ut_') ?
+                            `${UPLOADTHING_BASE_URL}${post.media.key}` :
+                            `${IMAGE_BASE_URL}${post.media.key}`) :
+                        null)) :
+                (post.image_url ? post.image_url : null));
 
         const tags = post.posts_rels
             .filter(rel => rel.path === 'tags' && rel.tags)
@@ -362,15 +368,18 @@ async function getPostsByUserId(userId, options = {}) {
                 } : null,
             };
         });
-        const mediaUrl = post.media ?
-            (post.media.url ?
-                post.media.url :
-                (post.media.key ?
-                    (post.media.key.startsWith('ut_') ?
-                        `${UPLOADTHING_BASE_URL}${post.media.key}` :
-                        `${IMAGE_BASE_URL}${post.media.key}`) :
-                    null)) :
-            null;
+        // Format the image URL: if image_id is null and image_url exists, use image_url. Otherwise, use media logic.
+        const mediaUrl = post.image_id === null && post.image_url
+            ? post.image_url
+            : (post.media ?
+                (post.media.url ?
+                    post.media.url :
+                    (post.media.key ?
+                        (post.media.key.startsWith('ut_') ?
+                            `${UPLOADTHING_BASE_URL}${post.media.key}` :
+                            `${IMAGE_BASE_URL}${post.media.key}`) :
+                        null)) :
+                null);
         const tags = post.posts_rels
             .filter(rel => rel.path === 'tags' && rel.tags)
             .map(rel => ({

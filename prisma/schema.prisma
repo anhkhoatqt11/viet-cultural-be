@@ -388,6 +388,7 @@ model posts {
   image_id                      Int?
   updated_at                    DateTime                        @default(now()) @db.Timestamptz(3)
   created_at                    DateTime                        @default(now()) @db.Timestamptz(3)
+  image_url                     String?                         @db.VarChar
   comments                      comments[]
   payload_locked_documents_rels payload_locked_documents_rels[]
   media                         media?                          @relation(fields: [image_id], references: [id], onUpdate: NoAction, map: "posts_image_id_media_id_fk")
@@ -767,7 +768,6 @@ model knowledge_section_items {
   @@index([order], map: "knowledge_section_items_order_idx")
   @@index([parent_id], map: "knowledge_section_items_parent_id_idx")
 }
-
 
 enum enum_comment_reactions_reaction_type {
   Like
