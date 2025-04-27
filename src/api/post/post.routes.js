@@ -2,7 +2,7 @@ const express = require('express');
 const router = express.Router();
 
 
-const { createPost, getPostById, getAllPosts, commentPost, likePost, isPostLikedByUser, getLikesByPostId } = require('./post.services');
+const { createPost, getPostById, getAllPosts, commentPost, likePost, isPostLikedByUser, getLikesByPostId, getPostsByUserId } = require('./post.services');
 
 /**
  * @swagger
@@ -416,6 +416,98 @@ router.get('/:postId/likes', async (req, res) => {
     }
 });
 
-
+/**
+ * @swagger
+ * /post/get-posts-by-user:
+ *   get:
+ *     summary: Get all posts by a specific user
+ *     tags:
+ *       - Posts
+ *     parameters:
+ *       - in: query
+ *         name: userId
+ *         schema:
+ *           type: number
+ *         required: true
+ *         description: ID of the user whose posts to fetch
+ *       - in: query
+ *         name: page
+ *         schema:
+ *           type: integer
+ *           default: 1
+ *         description: Page number for pagination
+ *       - in: query
+ *         name: limit
+ *         schema:
+ *           type: integer
+ *           default: 10
+ *         description: Number of posts per page
+ *       - in: query
+ *         name: search
+ *         schema:
+ *           type: string
+ *         description: Search term for filtering posts by title or content
+ *       - in: query
+ *         name: sortBy
+ *         schema:
+ *           type: string
+ *           enum: [created_at, title]
+ *           default: created_at
+ *         description: Field to sort posts by
+ *       - in: query
+ *         name: sortOrder
+ *         schema:
+ *           type: string
+ *           enum: [asc, desc]
+ *           default: desc
+ *         description: Sort order (ascending or descending)
+ *     responses:
+ *       200:
+ *         description: Posts retrieved successfully with pagination data
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 posts:
+ *                   type: array
+ *                   items:
+ *                     type: object
+ *                 pagination:
+ *                   type: object
+ *                   properties:
+ *                     total:
+ *                       type: integer
+ *                     page:
+ *                       type: integer
+ *                     limit:
+ *                       type: integer
+ *                     totalPages:
+ *                       type: integer
+ *       400:
+ *         description: Bad request - missing userId
+ *       500:
+ *         description: Internal server error
+ */
+router.get('/get-posts-by-user', async (req, res) => {
+    try {
+        const { userId, page, limit, search, sortBy, sortOrder } = req.query;
+        if (!userId) {
+            return res.status(400).json({ error: 'Missing required parameter: userId' });
+        }
+        const options = {
+            page: parseInt(page) || 1,
+            limit: parseInt(limit) || 10,
+            search: search || '',
+            sortBy: sortBy || 'created_at',
+            sortOrder: sortOrder || 'desc'
+        };
+        const result = await getPostsByUserId(userId, options);
+        res.json(result);
+    } catch (err) {
+        console.error('Error fetching posts by user:', err);
+        res.status(500).json({ error: 'Internal server error' });
+    }
+});
 
 module.exports = router;

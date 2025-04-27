@@ -282,7 +282,120 @@ async function getAllPosts(options = {}) {
         };
     });
 
+    return {
+        posts: formattedPosts,
+        pagination: {
+            total: totalCount,
+            page: parseInt(page),
+            limit: parseInt(limit),
+            totalPages: Math.ceil(totalCount / limit)
+        }
+    };
+}
 
+/**
+ * Get all posts by a specific user
+ */
+async function getPostsByUserId(userId, options = {}) {
+    userId = Number(userId);
+    const {
+        page = 1,
+        limit = 10,
+        search = '',
+        sortBy = 'created_at',
+        sortOrder = 'desc'
+    } = options;
+
+    const skip = (page - 1) * limit;
+    const take = parseInt(limit);
+
+    const whereCondition = {
+        user_id_id: userId,
+        ...(search
+            ? {
+                OR: [
+                    { title: { contains: search, mode: 'insensitive' } },
+                    { question: { contains: search, mode: 'insensitive' } }
+                ]
+            }
+            : {})
+    };
+
+    const totalCount = await db.posts.count({ where: whereCondition });
+
+    const posts = await db.posts.findMany({
+        where: whereCondition,
+        skip,
+        take,
+        include: {
+            media: true,
+            user: true,
+            posts_rels: {
+                include: { tags: true }
+            },
+            comments: {
+                orderBy: { created_at: 'desc' },
+                include: {
+                    user: true,
+                    comments_rels: { where: { path: 'likedBy' } }
+                }
+            },
+            _count: { select: { comments: true } }
+        },
+        orderBy: { [sortBy]: sortOrder }
+    });
+
+    const formattedPosts = posts.map(post => {
+        const likeCount = post.posts_rels.filter(rel => rel.path === 'likedBy').length;
+        const formattedComments = post.comments.map(comment => {
+            const commentLikes = comment.comments_rels ? comment.comments_rels.length : 0;
+            return {
+                id: comment.id,
+                content: comment.content,
+                likes: commentLikes,
+                created_at: comment.created_at,
+                user: comment.user ? {
+                    id: comment.user.id,
+                    full_name: comment.user.full_name,
+                    avatar_url: comment.user.avatar_url,
+                    avatarUrl: comment.user.avatar ? `${IMAGE_BASE_URL}${comment.user.avatar}` : null
+                } : null,
+            };
+        });
+        const mediaUrl = post.media ?
+            (post.media.url ?
+                post.media.url :
+                (post.media.key ?
+                    (post.media.key.startsWith('ut_') ?
+                        `${UPLOADTHING_BASE_URL}${post.media.key}` :
+                        `${IMAGE_BASE_URL}${post.media.key}`) :
+                    null)) :
+            null;
+        const tags = post.posts_rels
+            .filter(rel => rel.path === 'tags' && rel.tags)
+            .map(rel => ({
+                id: rel.tags.id,
+                name: rel.tags.name
+            }));
+        return {
+            id: post.id,
+            title: post.title,
+            question: post.question,
+            created_at: post.created_at,
+            updated_at: post.updated_at,
+            imageUrl: mediaUrl,
+            user: post.user ? {
+                id: post.user.id,
+                full_name: post.user.full_name,
+                avatar_url: post.user.avatar_url,
+                avatarUrl: post.user.avatar ? `${IMAGE_BASE_URL}${post.user.avatar}` : null
+            } : null,
+            likeCount,
+            commentCount: post._count.comments,
+            comments: formattedComments,
+            tags
+        };
+    });
 
     return {
         posts: formattedPosts,
@@ -453,6 +566,7 @@ module.exports = {
     createPost,
     getPostById,
     getAllPosts,
+    getPostsByUserId,
     commentPost,
     likePost,
     isPostLikedByUser,
