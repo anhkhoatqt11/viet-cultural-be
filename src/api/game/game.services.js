@@ -114,6 +114,156 @@ async function getGameData(regionId, gameType) {
     }
 }
 
+async function updateGameHistory(userId, gameTypeId, gameId, gameType, completed = false) {
+    // Get the current timestamp
+    const currentTime = new Date();
+
+    // Prepare the data to be updated or created
+    const updateData = completed
+        ? { completed_time: currentTime }
+        : { started_time: currentTime };
+    // Prepare the where condition based on game type and userId
+    const whereCondition = {
+        game_type_id_id: Number(gameTypeId),
+        user_id_id: Number(userId), // Include userId in the where condition
+        AND: {}
+    };
+
+    // Add game specific ID to where condition based on game type
+    switch (gameType) {
+        case 'word':
+            whereCondition.AND.word_game_id_id = Number(gameId);
+            break;
+        case 'quiz':
+            whereCondition.AND.quiz_game_id_id = Number(gameId);
+            break;
+        case 'puzzle':
+            whereCondition.AND.puzzle_game_id_id = Number(gameId);
+            break;
+        case 'treasure':
+            whereCondition.AND.treasure_game_id_id = Number(gameId);
+            break;
+        default:
+            throw new Error('Unsupported game type');
+    }
+
+    // Try to find an existing history record for this user and game
+    const existingHistory = await db.game_history.findFirst({
+        where: whereCondition
+    });
+
+    if (existingHistory) {
+        // Update existing record
+        return await db.game_history.update({
+            where: { id: existingHistory.id },
+            data: updateData
+        });
+    } else {
+        // Create new record with all required data
+        const createData = {
+            game_type_id_id: Number(gameTypeId),
+            user_id_id: Number(userId), // Add the user ID to createData
+            ...updateData
+        };
+
+        // Add specific game ID field based on game type
+        switch (gameType) {
+            case 'word':
+                createData.word_game_id_id = Number(gameId);
+                break;
+            case 'quiz':
+                createData.quiz_game_id_id = Number(gameId);
+                break;
+            case 'puzzle':
+                createData.puzzle_game_id_id = Number(gameId);
+                break;
+            case 'treasure':
+                createData.treasure_game_id_id = Number(gameId);
+                break;
+        }
+
+        return await db.game_history.create({ data: createData });
+    }
+}
+
+
+async function getGameHistory(userId, gameType = null) {
+    const whereCondition = {
+        user_id_id: Number(userId)
+    };
+
+    // If gameType is provided, add game type filter
+    if (gameType) {
+        // Get the game type ID
+        const gameTypeRecord = await db.game_types.findUnique({
+            where: { code: gameType }
+        });
+
+        if (!gameTypeRecord) {
+            throw new Error('Game type not found');
+        }
+
+        whereCondition.game_type_id_id = gameTypeRecord.id;
+    }
+
+    // Fetch game history with related game data
+    const gameHistory = await db.game_history.findMany({
+        where: whereCondition,
+        include: {
+            game_types: true, // Include game type info
+            // Include specific game info based on type
+            word_games: true,
+            puzzle_games_game_history_puzzle_game_id_idTopuzzle_games: true,
+            puzzle_games_game_history_quiz_game_id_idTopuzzle_games: true,
+            treasure_games: true
+        },
+        orderBy: {
+            created_at: 'desc' // Most recent first
+        }
+    });
+
+    // Transform the result to include game-specific data
+    return gameHistory.map(history => {
+        const result = {
+            id: history.id,
+            gameType: history.game_types?.code,
+            gameTypeName: history.game_types?.name,
+            startedTime: history.started_time,
+            completedTime: history.completed_time,
+            createdAt: history.created_at,
+            updatedAt: history.updated_at
+        };
+
+        // Add game-specific data based on game type
+        if (history.game_types?.code === 'word' && history.word_games) {
+            result.gameData = {
+                id: history.word_games.id,
+                question: history.word_games.question,
+                answer: history.word_games.answer
+            };
+        } else if (history.game_types?.code === 'puzzle' &&
+            (history.puzzle_games_game_history_puzzle_game_id_idTopuzzle_games ||
+                history.puzzle_games_game_history_quiz_game_id_idTopuzzle_games)) {
+            const puzzleGame = history.puzzle_games_game_history_puzzle_game_id_idTopuzzle_games ||
+                history.puzzle_games_game_history_quiz_game_id_idTopuzzle_games;
+            result.gameData = {
+                id: puzzleGame.id,
+                hint: puzzleGame.hint
+            };
+        } else if (history.game_types?.code === 'treasure' && history.treasure_games) {
+            result.gameData = {
+                id: history.treasure_games.id,
+                title: history.treasure_games.title
+            };
+        }
+
+        return result;
+    });
+}
+
 module.exports = {
     getGameData,
+    updateGameHistory,
+    getGameHistory,
 };
+
