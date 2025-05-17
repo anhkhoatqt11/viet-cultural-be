@@ -606,6 +606,8 @@ model user {
   hash                          String?                         @db.VarChar
   login_attempts                Decimal?                        @default(0) @db.Decimal
   lock_until                    DateTime?                       @db.Timestamptz(3)
+  age_range                     enum_user_age_range
+  nationality                   String                          @db.VarChar
   achievements                  achievements[]
   comment_reactions             comment_reactions[]
   comments                      comments[]
@@ -816,4 +818,9 @@ enum enum_knowledge_post_post_type {
   province
   journey
   category
+}
+
+enum enum_user_age_range {
+  student
+  non_student
 }
