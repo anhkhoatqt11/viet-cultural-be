@@ -1,6 +1,13 @@
 const express = require('express');
 const { isAuthenticated } = require('../../middlewares');
-const { createHistory, updateCompletedTime, findHistoryById, findHistoryByUserId, createAndCompleteHistory } = require('./history.services');
+const { 
+    createHistory, 
+    updateCompletedTime, 
+    findHistoryById, 
+    findHistoryByUserId, 
+    createAndCompleteHistory,
+    findIncompleteHistory 
+} = require('./history.services');
 const jwt = require('jsonwebtoken');
 
 const router = express.Router();
@@ -16,7 +23,7 @@ const router = express.Router();
  * @swagger
  * /history:
  *   post:
- *     summary: Create a new history record and optionally set completed_time
+ *     summary: Create a new history record or update an existing incomplete one
  *     tags: [History]
  *     requestBody:
  *       required: true
@@ -36,7 +43,7 @@ const router = express.Router();
  *                 format: date-time
  *               completed:
  *                 type: boolean
- *                 description: If true, sets the completed_time to now or to the provided completed_time
+ *                 description: If true, looks for an incomplete history record to update, or creates a new completed one if not found
  *               completed_time:
  *                 type: string
  *                 format: date-time
@@ -44,6 +51,8 @@ const router = express.Router();
  *     responses:
  *       201:
  *         description: History record created successfully
+ *       200:
+ *         description: Existing history record updated successfully
  *       400:
  *         description: Bad request
  *       401:
@@ -59,9 +68,7 @@ router.post('/', async (req, res, next) => {
 
         // Decode the token to get userId (assuming JWT and userId is in payload)
         const decoded = jwt.verify(token, process.env.JWT_ACCESS_SECRET);
-        const userId = decoded.userId;
-
-        const historyData = req.body;
+        const userId = decoded.userId;        const historyData = req.body;
 
         // If userId is not provided in the request, use the authenticated user's ID
         if (!historyData.userId && userId) {
@@ -70,9 +77,20 @@ router.post('/', async (req, res, next) => {
 
         // Check if we need to create and complete or just create
         if (historyData.completed) {
-            // Create and complete in one operation
-            const completedHistory = await createAndCompleteHistory(historyData);
-            res.status(201).json(completedHistory);
+            // First check if there's an incomplete history record for this user and game type
+            const incompleteHistory = await findIncompleteHistory(historyData.userId, historyData.gameTypeId);
+            
+            if (incompleteHistory) {
+                // Update the existing incomplete history record
+                const completedHistory = await updateCompletedTime(incompleteHistory.id, {
+                    completed_time: historyData.completed_time || new Date()
+                });
+                res.status(200).json(completedHistory);
+            } else {
+                // No incomplete history found, create and complete in one operation
+                const completedHistory = await createAndCompleteHistory(historyData);
+                res.status(201).json(completedHistory);
+            }
         } else {
             // Just create the history
             const newHistory = await createHistory(historyData);
@@ -83,42 +101,40 @@ router.post('/', async (req, res, next) => {
     }
 });
 
+
 /**
  * @swagger
- * /history/{id}:
+ * /history/user/{userId}:
  *   get:
- *     summary: Get a history record by ID
+ *     summary: Get all history records for a user
  *     tags: [History]
- *     security:
- *       - bearerAuth: []
- *     parameters:
- *       - in: path
- *         name: id
- *         required: true
- *         schema:
- *           type: integer
  *     responses:
  *       200:
- *         description: Returns history record
- *       404:
- *         description: History record not found
+ *         description: Returns array of history records
  *       401:
  *         description: Unauthorized
  */
-router.get('/:id', async (req, res, next) => {
+router.get('/user/:userId', async (req, res, next) => {
     try {
-        const id = parseInt(req.params.id);
-        const history = await findHistoryById(id);
-
-        if (!history) {
-            return res.status(404).json({ message: 'History record not found' });
+        // Assuming the token is stored in a cookie named 'token'
+        const token = req.cookies?.token;
+        if (!token) {
+            return res.status(401).json({ message: 'No token provided' });
         }
 
-        res.json(history);
+        // Decode the token to get userId (assuming JWT and userId is in payload)
+        const decoded = jwt.verify(token, process.env.JWT_ACCESS_SECRET);
+        const userId = decoded.userId;
+
+        const histories = await findHistoryByUserId(userId);
+
+        res.json(histories);
     } catch (err) {
         next(err);
     }
 });
+
+
 
 module.exports = router;
 

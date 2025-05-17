@@ -72,10 +72,29 @@ function findHistoryByUserId(userId) {
 async function createAndCompleteHistory(data) {
     // First create the history record
     const history = await createHistory(data);
-    
+
     // Then update its completed_time
     return updateCompletedTime(history.id, {
         completed_time: data.completed_time || new Date()
+    });
+}
+
+/**
+ * Find an incomplete history record for a user and game type
+ * @param {number} userId - User ID
+ * @param {number} gameTypeId - Game type ID
+ * @returns {Promise<Object>} Incomplete history record or null
+ */
+function findIncompleteHistory(userId, gameTypeId) {
+    return db.history.findFirst({
+        where: {
+            user_id_id: userId,
+            game_type_id_id: gameTypeId,
+            completed_time: null
+        },
+        orderBy: {
+            created_at: 'desc',
+        },
     });
 }
 
@@ -85,4 +104,5 @@ module.exports = {
     findHistoryById,
     findHistoryByUserId,
     createAndCompleteHistory,
+    findIncompleteHistory,
 };
