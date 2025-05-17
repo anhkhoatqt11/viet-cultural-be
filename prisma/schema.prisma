@@ -8,29 +8,34 @@ datasource db {
 }
 
 model media {
-  id                            Int                             @id @default(autoincrement())
-  alt                           String                          @db.VarChar
-  key                           String?                         @map("_key") @db.VarChar
-  updated_at                    DateTime                        @default(now()) @db.Timestamptz(3)
-  created_at                    DateTime                        @default(now()) @db.Timestamptz(3)
-  url                           String?                         @db.VarChar
-  thumbnail_u_r_l               String?                         @db.VarChar
-  filename                      String?                         @unique(map: "media_filename_idx") @db.VarChar
-  mime_type                     String?                         @db.VarChar
-  filesize                      Decimal?                        @db.Decimal
-  width                         Decimal?                        @db.Decimal
-  height                        Decimal?                        @db.Decimal
-  focal_x                       Decimal?                        @db.Decimal
-  focal_y                       Decimal?                        @db.Decimal
-  achievements                  achievements[]
-  knowledge_post                knowledge_post[]
-  knowledge_section_items       knowledge_section_items[]
-  media_links_rels              media_links_rels[]
-  payload_locked_documents_rels payload_locked_documents_rels[]
-  posts                         posts[]
-  puzzle_games                  puzzle_games[]
-  puzzle_pieces                 puzzle_pieces[]
-  treasure_cards                treasure_cards[]
+  id                                                     Int                             @id @default(autoincrement())
+  alt                                                    String                          @db.VarChar
+  key                                                    String?                         @map("_key") @db.VarChar
+  updated_at                                             DateTime                        @default(now()) @db.Timestamptz(3)
+  created_at                                             DateTime                        @default(now()) @db.Timestamptz(3)
+  url                                                    String?                         @db.VarChar
+  thumbnail_u_r_l                                        String?                         @db.VarChar
+  filename                                               String?                         @unique(map: "media_filename_idx") @db.VarChar
+  mime_type                                              String?                         @db.VarChar
+  filesize                                               Decimal?                        @db.Decimal
+  width                                                  Decimal?                        @db.Decimal
+  height                                                 Decimal?                        @db.Decimal
+  focal_x                                                Decimal?                        @db.Decimal
+  focal_y                                                Decimal?                        @db.Decimal
+  achievements                                           achievements[]
+  image_question_image_question_correct_answer_idTomedia image_question[]                @relation("image_question_correct_answer_idTomedia")
+  image_question_image_question_option_a_idTomedia       image_question[]                @relation("image_question_option_a_idTomedia")
+  image_question_image_question_option_b_idTomedia       image_question[]                @relation("image_question_option_b_idTomedia")
+  image_question_image_question_option_c_idTomedia       image_question[]                @relation("image_question_option_c_idTomedia")
+  image_question_image_question_option_d_idTomedia       image_question[]                @relation("image_question_option_d_idTomedia")
+  knowledge_post                                         knowledge_post[]
+  knowledge_section_items                                knowledge_section_items[]
+  media_links_rels                                       media_links_rels[]
+  payload_locked_documents_rels                          payload_locked_documents_rels[]
+  posts                                                  posts[]
+  puzzle_games                                           puzzle_games[]
+  puzzle_pieces                                          puzzle_pieces[]
+  treasure_cards                                         treasure_cards[]
 
   @@index([created_at])
   @@index([updated_at])
@@ -80,7 +85,13 @@ model payload_locked_documents_rels {
   knowledge_post_id        Int?
   knowledge_section_id     Int?
   feedback_id              Int?
-  game_history_id          Int?
+  history_id               Int?
+  test_id                  Int?
+  quiz_test_id             Int?
+  multiple_choice_id       Int?
+  scale_test_id            Int?
+  image_question_id        Int?
+  text_question_id         Int?
   achievements             achievements?            @relation(fields: [achievements_id], references: [id], onDelete: Cascade, onUpdate: NoAction, map: "payload_locked_documents_rels_achievements_fk")
   after_question_info      after_question_info?     @relation(fields: [after_question_info_id], references: [id], onDelete: Cascade, onUpdate: NoAction, map: "payload_locked_documents_rels_after_question_info_fk")
   comment_reactions        comment_reactions?       @relation(fields: [comment_reactions_id], references: [id], onDelete: Cascade, onUpdate: NoAction, map: "payload_locked_documents_rels_comment_reactions_fk")
@@ -88,11 +99,14 @@ model payload_locked_documents_rels {
   email_verifications      email_verifications?     @relation(fields: [email_verifications_id], references: [id], onDelete: Cascade, onUpdate: NoAction, map: "payload_locked_documents_rels_email_verifications_fk")
   feedback                 feedback?                @relation(fields: [feedback_id], references: [id], onDelete: Cascade, onUpdate: NoAction, map: "payload_locked_documents_rels_feedback_fk")
   game_types               game_types?              @relation(fields: [game_types_id], references: [id], onDelete: Cascade, onUpdate: NoAction, map: "payload_locked_documents_rels_game_types_fk")
+  history                  history?                 @relation(fields: [history_id], references: [id], onDelete: Cascade, onUpdate: NoAction, map: "payload_locked_documents_rels_history_fk")
+  image_question           image_question?          @relation(fields: [image_question_id], references: [id], onDelete: Cascade, onUpdate: NoAction, map: "payload_locked_documents_rels_image_question_fk")
   information_slides       information_slides?      @relation(fields: [information_slides_id], references: [id], onDelete: Cascade, onUpdate: NoAction, map: "payload_locked_documents_rels_information_slides_fk")
   knowledge_post           knowledge_post?          @relation(fields: [knowledge_post_id], references: [id], onDelete: Cascade, onUpdate: NoAction, map: "payload_locked_documents_rels_knowledge_post_fk")
   knowledge_section        knowledge_section?       @relation(fields: [knowledge_section_id], references: [id], onDelete: Cascade, onUpdate: NoAction, map: "payload_locked_documents_rels_knowledge_section_fk")
   media                    media?                   @relation(fields: [media_id], references: [id], onDelete: Cascade, onUpdate: NoAction, map: "payload_locked_documents_rels_media_fk")
   media_links              media_links?             @relation(fields: [media_links_id], references: [id], onDelete: Cascade, onUpdate: NoAction, map: "payload_locked_documents_rels_media_links_fk")
+  multiple_choice          multiple_choice?         @relation(fields: [multiple_choice_id], references: [id], onDelete: Cascade, onUpdate: NoAction, map: "payload_locked_documents_rels_multiple_choice_fk")
   payload_locked_documents payload_locked_documents @relation(fields: [parent_id], references: [id], onDelete: Cascade, onUpdate: NoAction, map: "payload_locked_documents_rels_parent_fk")
   password_resets          password_resets?         @relation(fields: [password_resets_id], references: [id], onDelete: Cascade, onUpdate: NoAction, map: "payload_locked_documents_rels_password_resets_fk")
   play_process             play_process?            @relation(fields: [play_process_id], references: [id], onDelete: Cascade, onUpdate: NoAction, map: "payload_locked_documents_rels_play_process_fk")
@@ -101,9 +115,13 @@ model payload_locked_documents_rels {
   puzzle_pieces            puzzle_pieces?           @relation(fields: [puzzle_pieces_id], references: [id], onDelete: Cascade, onUpdate: NoAction, map: "payload_locked_documents_rels_puzzle_pieces_fk")
   quiz_game_questions      quiz_game_questions?     @relation(fields: [quiz_game_questions_id], references: [id], onDelete: Cascade, onUpdate: NoAction, map: "payload_locked_documents_rels_quiz_game_questions_fk")
   quiz_games               quiz_games?              @relation(fields: [quiz_games_id], references: [id], onDelete: Cascade, onUpdate: NoAction, map: "payload_locked_documents_rels_quiz_games_fk")
+  quiz_test                quiz_test?               @relation(fields: [quiz_test_id], references: [id], onDelete: Cascade, onUpdate: NoAction, map: "payload_locked_documents_rels_quiz_test_fk")
   refresh_tokens           refresh_tokens?          @relation(fields: [refresh_tokens_id], references: [id], onDelete: Cascade, onUpdate: NoAction, map: "payload_locked_documents_rels_refresh_tokens_fk")
   regions                  regions?                 @relation(fields: [regions_id], references: [id], onDelete: Cascade, onUpdate: NoAction, map: "payload_locked_documents_rels_regions_fk")
+  scale_test               scale_test?              @relation(fields: [scale_test_id], references: [id], onDelete: Cascade, onUpdate: NoAction, map: "payload_locked_documents_rels_scale_test_fk")
   tags                     tags?                    @relation(fields: [tags_id], references: [id], onDelete: Cascade, onUpdate: NoAction, map: "payload_locked_documents_rels_tags_fk")
+  test                     test?                    @relation(fields: [test_id], references: [id], onDelete: Cascade, onUpdate: NoAction, map: "payload_locked_documents_rels_test_fk")
+  text_question            text_question?           @relation(fields: [text_question_id], references: [id], onDelete: Cascade, onUpdate: NoAction, map: "payload_locked_documents_rels_text_question_fk")
   treasure_cards           treasure_cards?          @relation(fields: [treasure_cards_id], references: [id], onDelete: Cascade, onUpdate: NoAction, map: "payload_locked_documents_rels_treasure_cards_fk")
   treasure_games           treasure_games?          @relation(fields: [treasure_games_id], references: [id], onDelete: Cascade, onUpdate: NoAction, map: "payload_locked_documents_rels_treasure_games_fk")
   user                     user?                    @relation(fields: [user_id], references: [id], onDelete: Cascade, onUpdate: NoAction, map: "payload_locked_documents_rels_user_fk")
@@ -140,7 +158,13 @@ model payload_locked_documents_rels {
   @@index([play_process_id])
   @@index([knowledge_section_id])
   @@index([feedback_id])
-  @@index([game_history_id])
+  @@index([history_id])
+  @@index([image_question_id])
+  @@index([multiple_choice_id])
+  @@index([quiz_test_id])
+  @@index([scale_test_id])
+  @@index([test_id])
+  @@index([text_question_id])
 }
 
 model payload_migrations {
@@ -241,8 +265,10 @@ model after_question_info {
   created_at                    DateTime                        @default(now()) @db.Timestamptz(3)
   game_types                    game_types?                     @relation(fields: [game_type_id_id], references: [id], onUpdate: NoAction, map: "after_question_info_game_type_id_id_game_types_id_fk")
   puzzle_games                  puzzle_games?                   @relation(fields: [puzzle_game_id_id], references: [id], onUpdate: NoAction, map: "after_question_info_puzzle_game_id_id_puzzle_games_id_fk")
+  quiz_game_questions           quiz_game_questions?            @relation(fields: [quiz_game_question_id_id], references: [id], onUpdate: NoAction, map: "after_question_info_quiz_game_question_id_id_quiz_game_question")
   treasure_cards                treasure_cards?                 @relation(fields: [treasure_card_id_id], references: [id], onUpdate: NoAction, map: "after_question_info_treasure_card_id_id_treasure_cards_id_fk")
   word_games                    word_games?                     @relation(fields: [word_game_id_id], references: [id], onUpdate: NoAction, map: "after_question_info_word_game_id_id_word_games_id_fk")
+  information_slides            information_slides[]
   media_links                   media_links[]
   payload_locked_documents_rels payload_locked_documents_rels[]
 
@@ -316,6 +342,7 @@ model game_types {
   updated_at                    DateTime                        @default(now()) @db.Timestamptz(3)
   created_at                    DateTime                        @default(now()) @db.Timestamptz(3)
   after_question_info           after_question_info[]
+  history                       history[]
   payload_locked_documents_rels payload_locked_documents_rels[]
   puzzle_games                  puzzle_games[]
   quiz_games                    quiz_games[]
@@ -332,6 +359,7 @@ model information_slides {
   after_question_info_id_id     Int?
   updated_at                    DateTime                        @default(now()) @db.Timestamptz(3)
   created_at                    DateTime                        @default(now()) @db.Timestamptz(3)
+  after_question_info           after_question_info?            @relation(fields: [after_question_info_id_id], references: [id], onUpdate: NoAction, map: "information_slides_after_question_info_id_id_after_question_inf")
   information_slides_content    information_slides_content[]
   payload_locked_documents_rels payload_locked_documents_rels[]
 
@@ -474,6 +502,7 @@ model quiz_game_questions {
   correct_answer                String?                         @db.VarChar
   updated_at                    DateTime                        @default(now()) @db.Timestamptz(3)
   created_at                    DateTime                        @default(now()) @db.Timestamptz(3)
+  after_question_info           after_question_info[]
   payload_locked_documents_rels payload_locked_documents_rels[]
   quiz_games                    quiz_games?                     @relation(fields: [quiz_game_id_id], references: [id], onUpdate: NoAction, map: "quiz_game_questions_quiz_game_id_id_quiz_games_id_fk")
 
@@ -524,6 +553,7 @@ model regions {
   updated_at                    DateTime                        @default(now()) @db.Timestamptz(3)
   created_at                    DateTime                        @default(now()) @db.Timestamptz(3)
   achievements                  achievements[]
+  history                       history[]
   payload_locked_documents_rels payload_locked_documents_rels[]
   puzzle_games                  puzzle_games[]
   quiz_games                    quiz_games[]
@@ -612,6 +642,7 @@ model user {
   comments_rels                 comments_rels[]
   email_verifications           email_verifications[]
   feedback                      feedback[]
+  history                       history[]
   password_resets               password_resets[]
   payload_locked_documents_rels payload_locked_documents_rels[]
   payload_preferences_rels      payload_preferences_rels[]
@@ -619,6 +650,7 @@ model user {
   posts                         posts[]
   posts_rels                    posts_rels[]
   refresh_tokens                refresh_tokens[]
+  test                          test[]
 
   @@index([created_at])
   @@index([updated_at])
@@ -789,15 +821,157 @@ model feedback {
 }
 
 model history {
-  id              Int       @id @default(autoincrement())
-  game_type_id_id Int?
-  user_id_id      Int?
-  region_id_id    Int?
-  description     String?   @db.VarChar
-  started_time    DateTime? @db.Timestamptz(3)
-  completed_time  DateTime? @db.Timestamptz(3)
-  updated_at      DateTime  @default(now()) @db.Timestamptz(3)
-  created_at      DateTime  @default(now()) @db.Timestamptz(3)
+  id                            Int                             @id @default(autoincrement())
+  game_type_id_id               Int?
+  user_id_id                    Int?
+  region_id_id                  Int?
+  description                   String?                         @db.VarChar
+  started_time                  DateTime?                       @db.Timestamptz(3)
+  completed_time                DateTime?                       @db.Timestamptz(3)
+  updated_at                    DateTime                        @default(now()) @db.Timestamptz(3)
+  created_at                    DateTime                        @default(now()) @db.Timestamptz(3)
+  game_types                    game_types?                     @relation(fields: [game_type_id_id], references: [id], onUpdate: NoAction, map: "history_game_type_id_id_game_types_id_fk")
+  regions                       regions?                        @relation(fields: [region_id_id], references: [id], onUpdate: NoAction, map: "history_region_id_id_regions_id_fk")
+  user                          user?                           @relation(fields: [user_id_id], references: [id], onUpdate: NoAction, map: "history_user_id_id_user_id_fk")
+  payload_locked_documents_rels payload_locked_documents_rels[]
+
+  @@index([created_at])
+  @@index([game_type_id_id], map: "history_game_type_id_idx")
+  @@index([region_id_id], map: "history_region_id_idx")
+  @@index([updated_at])
+  @@index([user_id_id], map: "history_user_id_idx")
+}
+
+model image_question {
+  id                                            Int                             @id @default(autoincrement())
+  test_id_id                                    Int?
+  question                                      String?                         @db.VarChar
+  option_a_id                                   Int?
+  option_b_id                                   Int?
+  option_c_id                                   Int?
+  option_d_id                                   Int?
+  correct_answer_id                             Int?
+  updated_at                                    DateTime                        @default(now()) @db.Timestamptz(3)
+  created_at                                    DateTime                        @default(now()) @db.Timestamptz(3)
+  media_image_question_correct_answer_idTomedia media?                          @relation("image_question_correct_answer_idTomedia", fields: [correct_answer_id], references: [id], onUpdate: NoAction, map: "image_question_correct_answer_id_media_id_fk")
+  media_image_question_option_a_idTomedia       media?                          @relation("image_question_option_a_idTomedia", fields: [option_a_id], references: [id], onUpdate: NoAction, map: "image_question_option_a_id_media_id_fk")
+  media_image_question_option_b_idTomedia       media?                          @relation("image_question_option_b_idTomedia", fields: [option_b_id], references: [id], onUpdate: NoAction, map: "image_question_option_b_id_media_id_fk")
+  media_image_question_option_c_idTomedia       media?                          @relation("image_question_option_c_idTomedia", fields: [option_c_id], references: [id], onUpdate: NoAction, map: "image_question_option_c_id_media_id_fk")
+  media_image_question_option_d_idTomedia       media?                          @relation("image_question_option_d_idTomedia", fields: [option_d_id], references: [id], onUpdate: NoAction, map: "image_question_option_d_id_media_id_fk")
+  test                                          test?                           @relation(fields: [test_id_id], references: [id], onUpdate: NoAction, map: "image_question_test_id_id_test_id_fk")
+  payload_locked_documents_rels                 payload_locked_documents_rels[]
+
+  @@index([correct_answer_id], map: "image_question_correct_answer_idx")
+  @@index([created_at])
+  @@index([option_a_id], map: "image_question_option_a_idx")
+  @@index([option_b_id], map: "image_question_option_b_idx")
+  @@index([option_c_id], map: "image_question_option_c_idx")
+  @@index([option_d_id], map: "image_question_option_d_idx")
+  @@index([test_id_id], map: "image_question_test_id_idx")
+  @@index([updated_at])
+}
+
+model multiple_choice {
+  id                            Int                             @id @default(autoincrement())
+  test_id_id                    Int?
+  question                      String?                         @db.VarChar
+  option_a                      String?                         @db.VarChar
+  option_b                      String?                         @db.VarChar
+  option_c                      String?                         @db.VarChar
+  option_d                      String?                         @db.VarChar
+  other_option                  String?                         @db.VarChar
+  audio_url                     String?                         @db.VarChar
+  updated_at                    DateTime                        @default(now()) @db.Timestamptz(3)
+  created_at                    DateTime                        @default(now()) @db.Timestamptz(3)
+  test                          test?                           @relation(fields: [test_id_id], references: [id], onUpdate: NoAction, map: "multiple_choice_test_id_id_test_id_fk")
+  multiple_choice_user_answer   multiple_choice_user_answer[]
+  payload_locked_documents_rels payload_locked_documents_rels[]
+
+  @@index([created_at])
+  @@index([test_id_id], map: "multiple_choice_test_id_idx")
+  @@index([updated_at])
+}
+
+model multiple_choice_user_answer {
+  order           Int             @map("_order")
+  parent_id       Int             @map("_parent_id")
+  id              String          @id @db.VarChar
+  answer          String?         @db.VarChar
+  multiple_choice multiple_choice @relation(fields: [parent_id], references: [id], onDelete: Cascade, onUpdate: NoAction, map: "multiple_choice_user_answer_parent_id_fk")
+
+  @@index([order], map: "multiple_choice_user_answer_order_idx")
+  @@index([parent_id], map: "multiple_choice_user_answer_parent_id_idx")
+}
+
+model quiz_test {
+  id                            Int                             @id @default(autoincrement())
+  test_id_id                    Int?
+  question                      String?                         @db.VarChar
+  option_a                      String?                         @db.VarChar
+  option_b                      String?                         @db.VarChar
+  option_c                      String?                         @db.VarChar
+  option_d                      String?                         @db.VarChar
+  audio_url                     String?                         @db.VarChar
+  correct_answer                String?                         @db.VarChar
+  updated_at                    DateTime                        @default(now()) @db.Timestamptz(3)
+  created_at                    DateTime                        @default(now()) @db.Timestamptz(3)
+  payload_locked_documents_rels payload_locked_documents_rels[]
+  test                          test?                           @relation(fields: [test_id_id], references: [id], onUpdate: NoAction, map: "quiz_test_test_id_id_test_id_fk")
+
+  @@index([created_at])
+  @@index([test_id_id], map: "quiz_test_test_id_idx")
+  @@index([updated_at])
+}
+
+model scale_test {
+  id                            Int                             @id @default(autoincrement())
+  test_id_id                    Int?
+  question                      String?                         @db.VarChar
+  updated_at                    DateTime                        @default(now()) @db.Timestamptz(3)
+  created_at                    DateTime                        @default(now()) @db.Timestamptz(3)
+  options                       enum_scale_test_options?
+  user_answer                   String?                         @db.VarChar
+  payload_locked_documents_rels payload_locked_documents_rels[]
+  test                          test?                           @relation(fields: [test_id_id], references: [id], onUpdate: NoAction, map: "scale_test_test_id_id_test_id_fk")
+
+  @@index([created_at])
+  @@index([test_id_id], map: "scale_test_test_id_idx")
+  @@index([updated_at])
+}
+
+model test {
+  id                            Int                             @id @default(autoincrement())
+  test_type                     enum_test_test_type?
+  user_id_id                    Int?
+  result                        String?                         @db.VarChar
+  updated_at                    DateTime                        @default(now()) @db.Timestamptz(3)
+  created_at                    DateTime                        @default(now()) @db.Timestamptz(3)
+  image_question                image_question[]
+  multiple_choice               multiple_choice[]
+  payload_locked_documents_rels payload_locked_documents_rels[]
+  quiz_test                     quiz_test[]
+  scale_test                    scale_test[]
+  user                          user?                           @relation(fields: [user_id_id], references: [id], onUpdate: NoAction, map: "test_user_id_id_user_id_fk")
+  text_question                 text_question[]
+
+  @@index([created_at])
+  @@index([updated_at])
+  @@index([user_id_id], map: "test_user_id_idx")
+}
+
+model text_question {
+  id                            Int                             @id @default(autoincrement())
+  test_id_id                    Int?
+  question                      String?                         @db.VarChar
+  updated_at                    DateTime                        @default(now()) @db.Timestamptz(3)
+  created_at                    DateTime                        @default(now()) @db.Timestamptz(3)
+  user_answer                   String?                         @db.VarChar
+  payload_locked_documents_rels payload_locked_documents_rels[]
+  test                          test?                           @relation(fields: [test_id_id], references: [id], onUpdate: NoAction, map: "text_question_test_id_id_test_id_fk")
+
+  @@index([created_at])
+  @@index([test_id_id], map: "text_question_test_id_idx")
+  @@index([updated_at])
 }
 
 enum enum_comment_reactions_reaction_type {
@@ -833,4 +1007,17 @@ enum enum_knowledge_post_post_type {
 enum enum_user_age_range {
   student
   non_student
+}
+
+enum enum_scale_test_options {
+  step1
+  step2
+  step3
+  step4
+  step5
+}
+
+enum enum_test_test_type {
+  input_test
+  output_test
 }

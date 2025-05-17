@@ -104,7 +104,7 @@ router.post('/', async (req, res, next) => {
 
 /**
  * @swagger
- * /history/user/{userId}:
+ * /history/get-history:
  *   get:
  *     summary: Get all history records for a user
  *     tags: [History]
@@ -114,7 +114,7 @@ router.post('/', async (req, res, next) => {
  *       401:
  *         description: Unauthorized
  */
-router.get('/user/:userId', async (req, res, next) => {
+router.get('/get-history', async (req, res, next) => {
     try {
         // Assuming the token is stored in a cookie named 'token'
         const token = req.cookies?.token;
