@@ -80,9 +80,6 @@ router.get('/get-gamedata', async (req, res, next) => {
  *               userId:
  *                 type: integer
  *                 description: The ID of the user
- *               gameTypeId:
- *                 type: integer
- *                 description: The ID of the game type
  *               gameId:
  *                 type: integer
  *                 description: The ID of the specific game
@@ -118,7 +115,7 @@ router.get('/get-gamedata', async (req, res, next) => {
  */
 router.post('/update-history', async (req, res, next) => {
     try {
-        const { gameTypeId, gameId, gameType, completed = false } = req.body;
+        const { gameId, gameType, completed = false } = req.body;
 
         const token = req.cookies?.token;
         if (!token) {
@@ -131,9 +128,9 @@ router.post('/update-history', async (req, res, next) => {
 
 
         // Validate required parameters
-        if (!userId || !gameTypeId || !gameId || !gameType) {
+        if (!userId || !gameId || !gameType) {
             return res.status(400).json({
-                message: 'Missing required parameters: gameTypeId, gameId, and gameType are required'
+                message: 'Missing required parameters: gameId and gameType are required'
             });
         }
 
@@ -145,7 +142,7 @@ router.post('/update-history', async (req, res, next) => {
             });
         }
 
-        const result = await updateGameHistory(userId, gameTypeId, gameId, gameType, completed);
+        const result = await updateGameHistory(userId, gameId, gameType, completed);
 
         res.json({
             message: 'Game history updated successfully',

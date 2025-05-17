@@ -114,17 +114,29 @@ async function getGameData(regionId, gameType) {
     }
 }
 
-async function updateGameHistory(userId, gameTypeId, gameId, gameType, completed = false) {
+async function updateGameHistory(userId, gameId, gameType, completed = false) {
     // Get the current timestamp
     const currentTime = new Date();
+    
+    // Get the game type ID from game_types table
+    const gameTypeRecord = await db.game_types.findUnique({
+        where: { code: gameType }
+    });
+    
+    if (!gameTypeRecord) {
+        throw new Error('Game type not found');
+    }
+    
+    const gameTypeId = gameTypeRecord.id;
 
     // Prepare the data to be updated or created
     const updateData = completed
         ? { completed_time: currentTime }
         : { started_time: currentTime };
+        
     // Prepare the where condition based on game type and userId
     const whereCondition = {
-        game_type_id_id: Number(gameTypeId),
+        game_type_id_id: gameTypeId,
         user_id_id: Number(userId), // Include userId in the where condition
         AND: {}
     };
@@ -161,8 +173,8 @@ async function updateGameHistory(userId, gameTypeId, gameId, gameType, completed
     } else {
         // Create new record with all required data
         const createData = {
-            game_type_id_id: Number(gameTypeId),
-            user_id_id: Number(userId), // Add the user ID to createData
+            game_type_id_id: gameTypeId,
+            user_id_id: Number(userId),
             ...updateData
         };
 
