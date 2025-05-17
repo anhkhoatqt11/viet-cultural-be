@@ -9,6 +9,7 @@ const assistance = require('./assistance/assistance.routes');
 const comment = require('./comment/comment.routes');
 const tags = require('./tags/tags.routes');
 const upload = require('./upload/upload.routes');
+const history = require('./history/history.routes');
 
 const knowledge_post = require('./knowledge_post/knowledgePost.routes')
 const knowledge_section = require('./knowledge_section/knowledgeSection.routes')
@@ -50,11 +51,12 @@ router.use('/upload', upload);
 
 router.use('/achievements', achievement)
 
-
 router.use('/knowledge-post', knowledge_post)
 
 router.use('/process', process)
 
 router.use('/feedback', feedback)
+
+router.use('/history', history)
 
 module.exports = router;
