@@ -55,12 +55,12 @@ const { createAchievementForAllRegions } = require('../achievements/achievement.
  *               full_name:
  *                 type: string
  *                 example: "Truong Anh Khoa"
- *              age_range:
- *                type: string
- *                example: "student"
- *             nationality:
- *               type: string
- *               example: "Vietnamese"
+ *               age_range:
+ *                 type: string
+ *                 example: "student"
+ *               nationality:
+ *                 type: string
+ *                 example: "Vietnamese"
  *     responses:
  *       200:
  *         description: Successfully registered

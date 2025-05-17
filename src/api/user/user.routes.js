@@ -96,7 +96,7 @@ router.put('/update-profile', async (req, res, next) => {
     const updateData = {};
 
     // Only include fields that are provided in the request
-    const allowedFields = ['full_name', 'username', 'avatar_url', 'date_of_birth', 'location', 'gender'];
+    const allowedFields = ['full_name', 'username', 'avatar_url', 'date_of_birth', 'location', 'gender', 'age_range', 'nationality'];
 
     allowedFields.forEach(field => {
       if (req.body[field] !== undefined) {
